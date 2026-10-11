@@ -7,7 +7,8 @@ import { strings } from './i18n/strings';
 import { projects } from './data/projects';
 import { MediaProvider, useMedia } from './components/MediaDialog';
 import { Footer, Intro, TopBar, useIntro } from './components/Chrome';
-import { Contact, Credentials, Hero, Marquee, Process, Shelf } from './components/Sections';
+import { Contact, Credentials, Hero, Marquee, Process } from './components/Sections';
+import { Builds } from './components/Builds';
 import { Studio } from './components/Studio';
 import { Overview } from './components/Overview';
 import { CommandPalette, type Command } from './components/CommandPalette';
@@ -130,7 +131,7 @@ function Page({ url, setUrl }: { url: ReturnType<typeof useUrlState>[0]; setUrl:
             onProject={(id) => setUrl({ project: id, layer: 'product' })}
             onLayer={(layer) => setUrl({ project: project.id, layer }, 'replace')}
           />
-          <Shelf />
+          <Builds onProject={openProject} />
           <Process />
           <Credentials />
         </main>

@@ -1,7 +1,7 @@
 # Gadi Rapaport — Build Studio
 
-Portfolio site: four case studies on a stage (DevMarshal, Slotkeeper, Planwright, Signalpost), two more builds
-(Fieldline, Airwise), how I work with AI agents, and contact. Plan: `portfolio-plan.md` on the desktop.
+Portfolio site: four case studies on a stage (DevMarshal, Slotkeeper, Planwright, Signalpost), all six
+products on a pinned horizontal track, how I work with AI agents, education, and contact. Plan: `portfolio-plan.md` on the desktop.
 
 ```powershell
 npm install
@@ -29,6 +29,8 @@ npm run build      # type-check + static build in dist/
 
 - URL state: `?p=<project>&l=product|hood|build` opens a project on a layer; `?view=overview` is the one-page
   quick overview (also the calm path for reduced motion).
+- "All builds" (`src/components/Builds.tsx`): the section pins and vertical scrolling moves the track
+  sideways (native scroll, no wheel hijacking); tabbing into a card scrolls to it; reduced motion gets a grid.
 - Ctrl/⌘+K command palette; arrow keys move between projects; Escape closes dialogs and returns focus.
 - Intro plays once per session, is skippable, and never runs with reduced motion.
 - Demos are labelled for what they are: DevMarshal's replay is the real event log; Slotkeeper's is a replay of

@@ -2519,3 +2519,247 @@ dialog::backdrop {
 .film--tall img {
   background: transparent;
 }
+
+/* ───────────── All builds: pinned horizontal track ───────────── */
+
+.builds {
+  position: relative;
+  border-top: 1px solid var(--line);
+}
+.builds:not(.builds--pinned) {
+  padding-block: clamp(64px, 10vh, 120px);
+}
+.builds__frame {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(16px, 3vh, 32px);
+}
+.builds--pinned .builds__frame {
+  position: sticky;
+  top: var(--bar);
+  height: calc(100svh - var(--bar));
+  overflow: hidden;
+  overflow: clip;
+}
+.builds__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  gap: 12px 48px;
+  align-items: end;
+}
+.builds__head .eyebrow {
+  margin-bottom: 8px;
+}
+.builds__head h2 {
+  margin: 0;
+  font-size: clamp(30px, 4.4vw, 64px);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+}
+.builds__intro {
+  margin: 0;
+  color: #cfcbc2;
+  max-width: 52ch;
+}
+.builds__track {
+  margin: 0;
+  list-style: none;
+  display: flex;
+  gap: clamp(14px, 2vw, 24px);
+  width: max-content;
+  padding-inline: max(var(--gutter), calc((100% - var(--max)) / 2 + var(--gutter)));
+  will-change: transform;
+}
+.builds:not(.builds--pinned) .builds__track {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  width: auto;
+  max-width: var(--max);
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+  will-change: auto;
+}
+.bcard {
+  flex: none;
+  width: clamp(290px, 31vw, 440px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  background: var(--ink-2);
+  transition:
+    border-color 0.25s,
+    translate 0.35s var(--ease),
+    box-shadow 0.35s var(--ease);
+}
+.builds:not(.builds--pinned) .bcard {
+  width: auto;
+}
+.bcard:hover,
+.bcard:focus-within {
+  border-color: var(--red);
+  translate: 0 -6px;
+  box-shadow: 0 10px 0 var(--red);
+}
+.bcard__media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #0b0b0e;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+}
+.bcard__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: scale 0.6s var(--ease);
+}
+.bcard:hover .bcard__media img {
+  scale: 1.05;
+}
+.bcard__log {
+  height: 100%;
+  aspect-ratio: auto;
+  padding: 14px 16px;
+  font-size: 12px;
+  line-height: 1.85;
+  color: var(--paper);
+}
+.bcard__num {
+  position: absolute;
+  inset-inline-end: 10px;
+  bottom: 6px;
+  font-size: clamp(40px, 5vw, 64px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: var(--red);
+  font-family: 'Space Grotesk', sans-serif;
+  text-shadow: 3px 3px 0 var(--ink);
+}
+.bcard__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 18px;
+}
+.bcard__body .eyebrow {
+  margin: 0;
+}
+.bcard h3 {
+  margin: 0;
+  font-size: clamp(24px, 2.4vw, 32px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.bcard__tag,
+.bcard__hard {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: #d4d0c7;
+}
+.bcard__hard {
+  color: var(--muted);
+}
+.bcard__proof {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.bcard__proof b {
+  font-size: 24px;
+  color: var(--lime);
+  white-space: nowrap;
+}
+.bcard__proof span {
+  font-size: 13px;
+  color: #cfcbc2;
+  line-height: 1.3;
+}
+.bcard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.bcard__private {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+.builds__meter {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--muted);
+}
+.builds__count {
+  color: var(--paper);
+  font-weight: 700;
+  min-width: 7ch;
+}
+.builds__bar {
+  flex: 1;
+  height: 3px;
+  background: var(--ink-3);
+}
+.builds__bar span {
+  display: block;
+  height: 100%;
+  background: var(--red);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+[dir='rtl'] .builds__bar span {
+  transform-origin: right;
+}
+@media (max-width: 760px) {
+  .builds__head {
+    grid-template-columns: 1fr;
+  }
+  .builds--pinned .builds__intro {
+    display: none;
+  }
+  .bcard {
+    width: min(84vw, 360px);
+  }
+}
+@media (max-height: 780px) {
+  .builds--pinned .bcard__hard,
+  .builds--pinned .builds__intro {
+    display: none;
+  }
+}
+@media (max-height: 620px) {
+  .builds--pinned .bcard__tag {
+    display: none;
+  }
+}
+
+/* Keep the pinned frame within one screen: shorter media, tighter title, clamped "hard part". */
+.builds--pinned .builds__head h2 {
+  font-size: clamp(28px, 3.6vw, 54px);
+}
+.builds--pinned .bcard__media {
+  aspect-ratio: auto;
+  height: clamp(130px, 25svh, 250px);
+}
+.bcard__hard {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+@media (max-height: 940px) and (min-width: 761px) {
+  .builds--pinned .builds__intro {
+    display: none;
+  }
+}

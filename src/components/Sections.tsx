@@ -4,7 +4,7 @@ import { useLang, useProjects, useT } from '../i18n';
 import { copyText, useToast } from '../lib/copy';
 import { useReducedMotion } from '../lib/motion';
 import { useMedia } from './MediaDialog';
-import { IconArrow, IconCopy, IconDoc, IconDown, IconGitHub, IconLinkedIn, IconMail, IconPlay } from './Icons';
+import { IconArrow, IconCopy, IconDoc, IconDown, IconGitHub, IconLinkedIn, IconMail } from './Icons';
 
 const icon: CSSProperties = { width: 20, verticalAlign: -4, marginInlineEnd: 8 };
 
@@ -140,61 +140,6 @@ export function Marquee() {
         </div>
       </div>
     </div>
-  );
-}
-
-export function Shelf() {
-  const t = useT();
-  const { shelf } = useProjects();
-  const open = useMedia();
-  return (
-    <section className="section" id="more" aria-labelledby="more-title" style={{ paddingTop: 0 }}>
-      <div className="wrap">
-        <div className="section__head">
-          <div>
-            <p className="eyebrow">{t.shelf.eyebrow}</p>
-            <h2 id="more-title" className="scroll-rise">{t.shelf.title}</h2>
-          </div>
-          <p>{t.shelf.intro}</p>
-        </div>
-        <div className="shelf">
-          {shelf.map((p) => (
-            <article className="card scroll-rise" key={p.id}>
-              <div className="card__media">
-                <img src={p.preview!} alt={t.shelf.previewAlt(p.name)} width={960} height={540} loading="lazy" />
-              </div>
-              <div className="card__body">
-                <p className="eyebrow" style={{ margin: 0 }}>{p.specialty}</p>
-                <h3>{p.name}</h3>
-                <p>{p.tagline}</p>
-                <p><strong>{t.shelf.hard}</strong> {p.moment}</p>
-                <dl className="evidence">
-                  {p.evidence.map((e) => (
-                    <div key={e.label}>
-                      <dt>{e.value}</dt>
-                      <dd>{e.label}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <div className="card__actions">
-                  <button type="button" className="btn btn--small btn--red" onClick={() => open({ kind: 'film', src: p.film!, poster: p.poster!, title: t.media.filmTitle(p.name), repo: p.repo })}>
-                    <IconPlay className="flip" /> {t.shelf.film}
-                  </button>
-                  {p.shots[0] && (
-                    <button type="button" className="btn btn--small" onClick={() => open({ kind: 'image', ...p.shots[0], src: p.shots[0].file, title: p.name })}>
-                      {t.shelf.shot}
-                    </button>
-                  )}
-                  <a className="btn btn--small" href={p.repo!} target="_blank" rel="noreferrer">
-                    <IconGitHub /> {t.shelf.code}
-                  </a>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }
 

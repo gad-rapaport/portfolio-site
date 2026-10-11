@@ -144,9 +144,13 @@ const en = {
   },
 
   shelf: {
-    eyebrow: 'More builds · same standard',
-    title: 'Two more, ready to run.',
-    intro: 'Each with its own tests, CI, decision record and a 20-second film rendered from the product.',
+    eyebrow: 'All builds · same standard',
+    title: 'Six products. One standard.',
+    intro: 'Keep scrolling to move through all of them. Each has its own tests, CI and decision record; five have a 20-second film rendered from the product.',
+    caseStudy: 'Case study',
+    privateRepo: 'private repo',
+    listAria: 'All projects',
+    counter: (i: number, n: number) => `${String(i).padStart(2, '0')} / ${String(n).padStart(2, '0')}`,
     hard: 'The hard part:',
     film: 'Film',
     shot: 'Screenshot',
@@ -409,9 +413,13 @@ const he: Strings = {
   },
 
   shelf: {
-    eyebrow: 'עוד עבודות · אותו סטנדרט',
-    title: 'עוד שניים, מוכנים להרצה.',
-    intro: 'לכל אחד בדיקות, CI, תיעוד החלטות וסרטון של 20 שניות שמרונדר מהמוצר עצמו.',
+    eyebrow: 'כל העבודות · אותו סטנדרט',
+    title: 'שישה מוצרים. סטנדרט אחד.',
+    intro: 'המשיכו לגלול כדי לעבור על כולם. לכל אחד בדיקות, CI ותיעוד החלטות; לחמישה מהם סרטון של 20 שניות שמרונדר מהמוצר עצמו.',
+    caseStudy: 'מקרה בוחן',
+    privateRepo: 'ריפו פרטי',
+    listAria: 'כל הפרויקטים',
+    counter: (i: number, n: number) => `${String(i).padStart(2, '0')} / ${String(n).padStart(2, '0')}`,
     hard: 'החלק הקשה:',
     film: 'סרטון',
     shot: 'צילום מסך',
