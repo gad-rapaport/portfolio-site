@@ -1,0 +1,462 @@
+{
+ "source": "docs/evidence/bl1004-events.jsonl",
+ "total": 213,
+ "events": [
+  {
+   "seq": 9,
+   "at": "2026-10-07T20:53:50.777Z",
+   "type": "MISSION_CREATED",
+   "task": null,
+   "agent": null,
+   "summary": "M-2026-001: build three features in a small ledger library, each as its own task"
+  },
+  {
+   "seq": 14,
+   "at": "2026-10-07T20:53:50.985Z",
+   "type": "WORKTREE_CREATED",
+   "task": null,
+   "agent": null,
+   "summary": "mission worktree ready on mission/M-2026-001 (your checkout is not touched)"
+  },
+  {
+   "seq": 19,
+   "at": "2026-10-07T20:53:51.097Z",
+   "type": "AGENT_STARTED",
+   "task": null,
+   "agent": "codex",
+   "summary": "Codex started planner for planning"
+  },
+  {
+   "seq": 21,
+   "at": "2026-10-07T20:54:33.105Z",
+   "type": "RUN_SUCCEEDED",
+   "task": null,
+   "agent": null,
+   "summary": "plan with 3 task(s)"
+  },
+  {
+   "seq": 23,
+   "at": "2026-10-07T20:54:33.106Z",
+   "type": "TASK_CREATED",
+   "task": "LEDGER-001",
+   "agent": null,
+   "summary": "LEDGER-001: Add category totals"
+  },
+  {
+   "seq": 24,
+   "at": "2026-10-07T20:54:33.106Z",
+   "type": "TASK_CREATED",
+   "task": "CSV-001",
+   "agent": null,
+   "summary": "CSV-001: Add CSV import and export"
+  },
+  {
+   "seq": 25,
+   "at": "2026-10-07T20:54:33.106Z",
+   "type": "TASK_CREATED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "REPORT-001: Add monthly income and expense summaries"
+  },
+  {
+   "seq": 26,
+   "at": "2026-10-07T20:54:33.106Z",
+   "type": "PLAN_PROPOSED",
+   "task": null,
+   "agent": null,
+   "summary": "plan v1: 3 task(s)"
+  },
+  {
+   "seq": 27,
+   "at": "2026-10-07T20:54:33.106Z",
+   "type": "HUMAN_APPROVAL_REQUIRED",
+   "task": null,
+   "agent": null,
+   "summary": "Plan v1: 3 task(s) proposed"
+  },
+  {
+   "seq": 30,
+   "at": "2026-10-07T20:54:33.109Z",
+   "type": "HUMAN_APPROVED",
+   "task": null,
+   "agent": null,
+   "summary": "PLAN: approve"
+  },
+  {
+   "seq": 44,
+   "at": "2026-10-07T20:54:33.226Z",
+   "type": "AGENT_STARTED",
+   "task": "LEDGER-001",
+   "agent": "claude",
+   "summary": "Claude Code started implementer for LEDGER-001"
+  },
+  {
+   "seq": 46,
+   "at": "2026-10-07T20:54:57.762Z",
+   "type": "RUN_SUCCEEDED",
+   "task": "LEDGER-001",
+   "agent": null,
+   "summary": "implementer finished: completed"
+  },
+  {
+   "seq": 54,
+   "at": "2026-10-07T20:54:58.748Z",
+   "type": "TEST_PASSED",
+   "task": "LEDGER-001",
+   "agent": null,
+   "summary": "LEDGER-001: 5 passed"
+  },
+  {
+   "seq": 60,
+   "at": "2026-10-07T20:54:59.084Z",
+   "type": "REVIEW_STARTED",
+   "task": "LEDGER-001",
+   "agent": "codex",
+   "summary": "Codex started reviewer for LEDGER-001"
+  },
+  {
+   "seq": 62,
+   "at": "2026-10-07T20:55:12.931Z",
+   "type": "RUN_SUCCEEDED",
+   "task": "LEDGER-001",
+   "agent": null,
+   "summary": "review: approved"
+  },
+  {
+   "seq": 64,
+   "at": "2026-10-07T20:55:12.931Z",
+   "type": "REVIEW_APPROVED",
+   "task": "LEDGER-001",
+   "agent": "codex",
+   "summary": "Codex approved LEDGER-001"
+  },
+  {
+   "seq": 68,
+   "at": "2026-10-07T20:55:13.069Z",
+   "type": "TASK_DONE",
+   "task": "LEDGER-001",
+   "agent": null,
+   "summary": "done: checkpoint 03097de867"
+  },
+  {
+   "seq": 69,
+   "at": "2026-10-07T20:55:13.069Z",
+   "type": "COMMIT_CREATED",
+   "task": "LEDGER-001",
+   "agent": null,
+   "summary": "LEDGER-001 checkpoint 03097de867"
+  },
+  {
+   "seq": 77,
+   "at": "2026-10-07T20:55:13.189Z",
+   "type": "AGENT_STARTED",
+   "task": "CSV-001",
+   "agent": "claude",
+   "summary": "Claude Code started implementer for CSV-001"
+  },
+  {
+   "seq": 79,
+   "at": "2026-10-07T20:55:58.966Z",
+   "type": "RUN_SUCCEEDED",
+   "task": "CSV-001",
+   "agent": null,
+   "summary": "implementer finished: completed"
+  },
+  {
+   "seq": 87,
+   "at": "2026-10-07T20:55:59.933Z",
+   "type": "TEST_FAILED",
+   "task": "CSV-001",
+   "agent": null,
+   "summary": "CSV-001: 1 failed"
+  },
+  {
+   "seq": 88,
+   "at": "2026-10-07T20:55:59.934Z",
+   "type": "TASK_CHANGES_REQUESTED",
+   "task": "CSV-001",
+   "agent": null,
+   "summary": "validation failed"
+  },
+  {
+   "seq": 95,
+   "at": "2026-10-07T20:56:00.147Z",
+   "type": "AGENT_STARTED",
+   "task": "CSV-001",
+   "agent": "claude",
+   "summary": "Claude Code started implementer for CSV-001"
+  },
+  {
+   "seq": 97,
+   "at": "2026-10-07T20:57:08.958Z",
+   "type": "RUN_SUCCEEDED",
+   "task": "CSV-001",
+   "agent": null,
+   "summary": "implementer finished: completed"
+  },
+  {
+   "seq": 105,
+   "at": "2026-10-07T20:57:12.605Z",
+   "type": "TEST_PASSED",
+   "task": "CSV-001",
+   "agent": null,
+   "summary": "CSV-001: 15 passed"
+  },
+  {
+   "seq": 111,
+   "at": "2026-10-07T20:57:12.897Z",
+   "type": "REVIEW_STARTED",
+   "task": "CSV-001",
+   "agent": "codex",
+   "summary": "Codex started reviewer for CSV-001"
+  },
+  {
+   "seq": 113,
+   "at": "2026-10-07T20:57:36.080Z",
+   "type": "RUN_SUCCEEDED",
+   "task": "CSV-001",
+   "agent": null,
+   "summary": "review: approved"
+  },
+  {
+   "seq": 115,
+   "at": "2026-10-07T20:57:36.080Z",
+   "type": "REVIEW_APPROVED",
+   "task": "CSV-001",
+   "agent": "codex",
+   "summary": "Codex approved CSV-001"
+  },
+  {
+   "seq": 119,
+   "at": "2026-10-07T20:57:36.220Z",
+   "type": "TASK_DONE",
+   "task": "CSV-001",
+   "agent": null,
+   "summary": "done: checkpoint 2012ac4367"
+  },
+  {
+   "seq": 120,
+   "at": "2026-10-07T20:57:36.220Z",
+   "type": "COMMIT_CREATED",
+   "task": "CSV-001",
+   "agent": null,
+   "summary": "CSV-001 checkpoint 2012ac4367"
+  },
+  {
+   "seq": 128,
+   "at": "2026-10-07T20:57:36.336Z",
+   "type": "AGENT_STARTED",
+   "task": "REPORT-001",
+   "agent": "claude",
+   "summary": "Claude Code started implementer for REPORT-001"
+  },
+  {
+   "seq": 130,
+   "at": "2026-10-07T20:58:03.312Z",
+   "type": "RUN_FAILED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "agent quota_limited"
+  },
+  {
+   "seq": 133,
+   "at": "2026-10-07T20:58:03.313Z",
+   "type": "AGENT_UNAVAILABLE",
+   "task": "REPORT-001",
+   "agent": "claude",
+   "summary": "Claude Code quota_limited"
+  },
+  {
+   "seq": 134,
+   "at": "2026-10-07T20:58:03.313Z",
+   "type": "TASK_WAITING",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "waiting: claude quota_limited"
+  },
+  {
+   "seq": 137,
+   "at": "2026-10-08T07:32:58.571Z",
+   "type": "MISSION_RUNNING",
+   "task": null,
+   "agent": null,
+   "summary": "resuming: the blocking item was resolved"
+  },
+  {
+   "seq": 145,
+   "at": "2026-10-08T07:32:58.847Z",
+   "type": "AGENT_STARTED",
+   "task": "REPORT-001",
+   "agent": "claude",
+   "summary": "Claude Code started implementer for REPORT-001"
+  },
+  {
+   "seq": 147,
+   "at": "2026-10-08T07:33:39.014Z",
+   "type": "RUN_SUCCEEDED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "implementer finished: completed"
+  },
+  {
+   "seq": 155,
+   "at": "2026-10-08T07:33:40.061Z",
+   "type": "TEST_PASSED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "REPORT-001: 23 passed"
+  },
+  {
+   "seq": 161,
+   "at": "2026-10-08T07:33:40.261Z",
+   "type": "REVIEW_STARTED",
+   "task": "REPORT-001",
+   "agent": "codex",
+   "summary": "Codex started reviewer for REPORT-001"
+  },
+  {
+   "seq": 163,
+   "at": "2026-10-08T07:33:40.320Z",
+   "type": "RUN_FAILED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "run failed: CRASH: Error: The system cannot find the path specified. (os error 3)"
+  },
+  {
+   "seq": 170,
+   "at": "2026-10-08T07:33:40.534Z",
+   "type": "REVIEW_STARTED",
+   "task": "REPORT-001",
+   "agent": "codex",
+   "summary": "Codex started reviewer for REPORT-001"
+  },
+  {
+   "seq": 172,
+   "at": "2026-10-08T07:33:40.586Z",
+   "type": "RUN_FAILED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "run failed: CRASH: Error: The system cannot find the path specified. (os error 3)"
+  },
+  {
+   "seq": 179,
+   "at": "2026-10-08T07:33:40.780Z",
+   "type": "REVIEW_STARTED",
+   "task": "REPORT-001",
+   "agent": "codex",
+   "summary": "Codex started reviewer for REPORT-001"
+  },
+  {
+   "seq": 181,
+   "at": "2026-10-08T07:33:40.835Z",
+   "type": "RUN_FAILED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "run failed: CRASH: Error: The system cannot find the path specified. (os error 3)"
+  },
+  {
+   "seq": 184,
+   "at": "2026-10-08T07:33:40.838Z",
+   "type": "HUMAN_APPROVAL_REQUIRED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "REPORT-001: stopped by loop protection (LIMIT_AGENT_RESTARTS)."
+  },
+  {
+   "seq": 185,
+   "at": "2026-10-08T07:33:40.838Z",
+   "type": "TASK_HUMAN_REQUIRED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "REPORT-001: stopped by loop protection (LIMIT_AGENT_RESTARTS)."
+  },
+  {
+   "seq": 188,
+   "at": "2026-10-08T07:34:45.373Z",
+   "type": "HUMAN_APPROVED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "LIMIT_EXCEEDED: retry"
+  },
+  {
+   "seq": 190,
+   "at": "2026-10-08T07:34:45.378Z",
+   "type": "MISSION_RUNNING",
+   "task": null,
+   "agent": null,
+   "summary": "resuming: the blocking item was resolved"
+  },
+  {
+   "seq": 197,
+   "at": "2026-10-08T07:34:45.546Z",
+   "type": "AGENT_STARTED",
+   "task": "REPORT-001",
+   "agent": "claude",
+   "summary": "Claude Code started implementer for REPORT-001"
+  },
+  {
+   "seq": 199,
+   "at": "2026-10-08T07:35:27.907Z",
+   "type": "RUN_SUCCEEDED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "implementer finished: completed"
+  },
+  {
+   "seq": 207,
+   "at": "2026-10-08T07:35:28.876Z",
+   "type": "TEST_PASSED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "REPORT-001: 23 passed"
+  },
+  {
+   "seq": 213,
+   "at": "2026-10-08T07:35:29.114Z",
+   "type": "REVIEW_STARTED",
+   "task": "REPORT-001",
+   "agent": "codex",
+   "summary": "Codex started reviewer for REPORT-001"
+  },
+  {
+   "seq": 215,
+   "at": "2026-10-08T07:35:54.523Z",
+   "type": "RUN_SUCCEEDED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "review: approved"
+  },
+  {
+   "seq": 217,
+   "at": "2026-10-08T07:35:54.523Z",
+   "type": "REVIEW_APPROVED",
+   "task": "REPORT-001",
+   "agent": "codex",
+   "summary": "Codex approved REPORT-001"
+  },
+  {
+   "seq": 221,
+   "at": "2026-10-08T07:35:54.641Z",
+   "type": "TASK_DONE",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "done: checkpoint 4cc8ff261a"
+  },
+  {
+   "seq": 222,
+   "at": "2026-10-08T07:35:54.641Z",
+   "type": "COMMIT_CREATED",
+   "task": "REPORT-001",
+   "agent": null,
+   "summary": "REPORT-001 checkpoint 4cc8ff261a"
+  },
+  {
+   "seq": 223,
+   "at": "2026-10-08T07:35:54.644Z",
+   "type": "MISSION_COMPLETED",
+   "task": null,
+   "agent": null,
+   "summary": "all tasks finished"
+  }
+ ]
+}

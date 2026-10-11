@@ -1,0 +1,130 @@
+{
+  "slotkeeper": {
+    "screenshots": {
+      "day": {
+        "w": 1440,
+        "h": 934
+      },
+      "week": {
+        "w": 1440,
+        "h": 900
+      },
+      "booking-dialog": {
+        "w": 1440,
+        "h": 900
+      },
+      "mobile-day": {
+        "w": 780,
+        "h": 1688
+      }
+    },
+    "poster": {
+      "w": 1280,
+      "h": 720
+    },
+    "film": {
+      "w": 1920,
+      "h": 1080
+    }
+  },
+  "planwright": {
+    "screenshots": {
+      "compare": {
+        "w": 1440,
+        "h": 900
+      },
+      "plan-branch": {
+        "w": 1440,
+        "h": 900
+      },
+      "compare-dark": {
+        "w": 1440,
+        "h": 900
+      },
+      "mobile": {
+        "w": 390,
+        "h": 844
+      }
+    },
+    "poster": {
+      "w": 1280,
+      "h": 720
+    },
+    "film": {
+      "w": 1920,
+      "h": 1080
+    }
+  },
+  "signalpost": {
+    "screenshots": {
+      "status": {
+        "w": 1440,
+        "h": 3166
+      },
+      "status-outage": {
+        "w": 1440,
+        "h": 900
+      },
+      "policy-blocked": {
+        "w": 1440,
+        "h": 900
+      },
+      "admin-monitors": {
+        "w": 1440,
+        "h": 900
+      }
+    },
+    "poster": {
+      "w": 1280,
+      "h": 720
+    },
+    "film": {
+      "w": 1920,
+      "h": 1080
+    }
+  },
+  "fieldline": {
+    "screenshots": {
+      "dashboard": {
+        "w": 1440,
+        "h": 900
+      },
+      "request-detail": {
+        "w": 1440,
+        "h": 1076
+      },
+      "requests": {
+        "w": 1440,
+        "h": 900
+      }
+    },
+    "poster": {
+      "w": 1280,
+      "h": 720
+    },
+    "film": {
+      "w": 1920,
+      "h": 1080
+    }
+  },
+  "airwise": {
+    "screenshots": {
+      "overview": {
+        "w": 1440,
+        "h": 900
+      },
+      "daily-aqi": {
+        "w": 1440,
+        "h": 900
+      }
+    },
+    "poster": {
+      "w": 1280,
+      "h": 720
+    },
+    "film": {
+      "w": 1920,
+      "h": 1080
+    }
+  }
+}
