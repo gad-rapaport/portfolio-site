@@ -1,4 +1,5 @@
 import media from './media.json';
+import { asset } from './asset';
 
 // Single source of truth for every project on the page. Every number here comes from the project's own
 // repository (README, STATUS, TESTING, MILESTONE_B) as of 2026-10-11; `source` fields say where.
@@ -51,11 +52,11 @@ type MediaId = keyof typeof media;
 
 function shots(id: MediaId, list: [string, string][]): Shot[] {
   const sizes = media[id].screenshots as Record<string, { w: number; h: number }>;
-  return list.map(([file, alt]) => ({ file: `/media/${id}/${file}.webp`, alt, ...sizes[file] }));
+  return list.map(([file, alt]) => ({ file: asset(`media/${id}/${file}.webp`), alt, ...sizes[file] }));
 }
 
 function filmMedia(id: MediaId) {
-  return { film: `/media/${id}/film.mp4`, poster: `/media/${id}/poster.jpg`, preview: `/media/${id}/preview.webp` };
+  return { film: asset(`media/${id}/film.mp4`), poster: asset(`media/${id}/poster.jpg`), preview: asset(`media/${id}/preview.webp`) };
 }
 
 export const projects: Project[] = [
