@@ -1,9 +1,20 @@
 import { useEffect, useState } from 'react';
 import { profile } from '../data/profile';
+import { useT } from '../i18n';
 import { GR_PATH, GrMark, IconGitHub, IconLinkedIn } from './Icons';
 import { useReducedMotion } from '../lib/motion';
 
-export function TopBar({ onPalette, onOverview, onStudio, view }: { onPalette: () => void; onOverview: () => void; onStudio: () => void; view: 'studio' | 'overview' }) {
+interface TopBarProps {
+  view: 'studio' | 'overview';
+  langHref: string;
+  onPalette: () => void;
+  onOverview: () => void;
+  onStudio: () => void;
+  onLang: () => void;
+}
+
+export function TopBar({ onPalette, onOverview, onStudio, onLang, langHref, view }: TopBarProps) {
+  const t = useT();
   const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
   return (
     <header className="topbar">
@@ -18,13 +29,13 @@ export function TopBar({ onPalette, onOverview, onStudio, view }: { onPalette: (
           }}
         >
           <GrMark />
-          <span>{profile.name}</span>
+          <span>{t.name}</span>
         </a>
-        <nav aria-label="Main">
+        <nav aria-label={t.nav.aria}>
           {view === 'studio' ? (
             <>
-              <a href="#work">Work</a>
-              <a href="#process">How I build</a>
+              <a href="#work">{t.nav.work}</a>
+              <a href="#process">{t.nav.process}</a>
             </>
           ) : (
             <a
@@ -34,7 +45,7 @@ export function TopBar({ onPalette, onOverview, onStudio, view }: { onPalette: (
                 onStudio();
               }}
             >
-              Studio
+              {t.nav.studio}
             </a>
           )}
           <a
@@ -45,12 +56,24 @@ export function TopBar({ onPalette, onOverview, onStudio, view }: { onPalette: (
               onOverview();
             }}
           >
-            Quick overview
+            {t.nav.overview}
           </a>
-          <a href="#contact">Contact</a>
+          <a href="#contact">{t.nav.contact}</a>
         </nav>
         <div className="topbar__tools">
-          <button type="button" className="kbd-btn" onClick={onPalette} aria-label="Open the command palette">
+          <a
+            className="lang-btn"
+            href={langHref}
+            hrefLang={t.dir === 'rtl' ? 'en' : 'he'}
+            aria-label={t.switchLabel}
+            onClick={(e) => {
+              e.preventDefault();
+              onLang();
+            }}
+          >
+            {t.switchTo}
+          </a>
+          <button type="button" className="kbd-btn" onClick={onPalette} aria-label={t.nav.palette}>
             {mac ? '⌘' : 'Ctrl'} K
           </button>
           <a className="icon-btn" href={profile.github} target="_blank" rel="noreferrer" aria-label="GitHub">
@@ -66,65 +89,88 @@ export function TopBar({ onPalette, onOverview, onStudio, view }: { onPalette: (
 }
 
 const SEEN = 'gr-intro-seen';
+export const INTRO_MS = 3000;
 
-// The GR mark comes apart into three layers (interface, service, data) and settles back. It plays once per
-// session, can be skipped, and never runs with reduced motion. Content is already rendered underneath it.
-export function Intro() {
+// The GR mark comes apart into three labelled layers (interface, service, data), holds long enough to read,
+// settles back and wipes away. Once per session, skippable by click, Escape or the button, and never with
+// reduced motion. The page is already rendered underneath it.
+export function useIntro() {
   const reduced = useReducedMotion();
-  const [show, setShow] = useState(() => {
+  const [show] = useState(() => {
     try {
       return !sessionStorage.getItem(SEEN) && !new URLSearchParams(location.search).has('p');
     } catch {
       return false;
     }
   });
+  return show && !reduced;
+}
+
+export function Intro({ onReveal, onDone }: { onReveal: () => void; onDone: () => void }) {
+  const t = useT();
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    if (!show) return;
     try {
       sessionStorage.setItem(SEEN, '1');
     } catch {
       /* storage blocked: the intro just plays again next time */
     }
-    const t = window.setTimeout(() => setShow(false), 1350);
-    const skip = (e: KeyboardEvent) => e.key === 'Escape' && setShow(false);
+    const reveal = window.setTimeout(onReveal, INTRO_MS - 650);
+    const timer = window.setTimeout(onDone, INTRO_MS);
+    const skip = (e: KeyboardEvent) => e.key === 'Escape' && setLeaving(true);
     window.addEventListener('keydown', skip);
     return () => {
-      window.clearTimeout(t);
+      window.clearTimeout(reveal);
+      window.clearTimeout(timer);
       window.removeEventListener('keydown', skip);
     };
-  }, [show]);
+  }, [onReveal, onDone]);
 
-  if (!show || reduced) return null;
+  useEffect(() => {
+    if (!leaving) return;
+    onReveal();
+    const timer = window.setTimeout(onDone, 450);
+    return () => window.clearTimeout(timer);
+  }, [leaving, onReveal, onDone]);
+
   return (
-    <div className="intro" aria-hidden="true" onClick={() => setShow(false)}>
-      <div className="intro__mark">
-        {[0, 1, 2].map((i) => (
-          <div className="intro__slice" key={i}>
-            <svg viewBox="0 0 23 14">
-              <path fillRule="evenodd" d={GR_PATH} />
-            </svg>
+    <div className={`intro${leaving ? ' intro--leaving' : ''}`} aria-hidden="true" onClick={() => setLeaving(true)}>
+      <div className="intro__curtain" />
+      <div className="intro__stage">
+        <div className="intro__mark" dir="ltr">
+          {[0, 1, 2].map((i) => (
+            <div className="intro__slice" key={i}>
+              <svg viewBox="0 0 23 14">
+                <path fillRule="evenodd" d={GR_PATH} />
+              </svg>
+            </div>
+          ))}
+          <div className="intro__labels">
+            {t.intro.layers.map((l, i) => (
+              <span key={l} style={{ ['--i' as string]: i }}>
+                <b>0{i + 1}</b> {l}
+              </span>
+            ))}
           </div>
-        ))}
-        <div className="intro__labels">
-          <span>interface</span>
-          <span>service</span>
-          <span>data</span>
         </div>
+        <p className="intro__name">{t.name}</p>
+        <p className="intro__line">{t.intro.line}</p>
       </div>
-      <button type="button" className="btn btn--small intro__skip" tabIndex={-1} onClick={() => setShow(false)}>
-        Skip
+      <button type="button" className="btn btn--small intro__skip" tabIndex={-1} onClick={() => setLeaving(true)}>
+        {t.intro.skip}
       </button>
     </div>
   );
 }
 
 export function Footer() {
+  const t = useT();
   return (
     <footer className="footer">
       <div className="wrap">
-        <span>© 2026 {profile.name}</span>
-        <span>Built with React, TypeScript and Vite · fonts Space Grotesk and JetBrains Mono (OFL)</span>
+        <span>© 2026 {t.name}</span>
+        <span>{t.footer.built}</span>
       </div>
     </footer>
   );

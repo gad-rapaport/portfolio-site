@@ -1,29 +1,48 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { findProject, projects, stageProjects } from './data/projects';
-import { profile, hasCv } from './data/profile';
-import { useUrlState } from './lib/url';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { hasCv, profile } from './data/profile';
+import { useUrlState, urlFor } from './lib/url';
 import { copyText, ToastContext } from './lib/copy';
-import { MediaProvider } from './components/MediaDialog';
-import { Footer, Intro, TopBar } from './components/Chrome';
-import { Contact, Hero, Process, Shelf } from './components/Sections';
+import { LangContext, localize, rememberLang } from './i18n';
+import { strings } from './i18n/strings';
+import { projects } from './data/projects';
+import { MediaProvider, useMedia } from './components/MediaDialog';
+import { Footer, Intro, TopBar, useIntro } from './components/Chrome';
+import { Contact, Credentials, Hero, Marquee, Process, Shelf } from './components/Sections';
 import { Studio } from './components/Studio';
 import { Overview } from './components/Overview';
 import { CommandPalette, type Command } from './components/CommandPalette';
 
-const scrollToId = (id: string) =>
-  requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start' }));
+const scrollToId = (id: string) => requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start' }));
 
 export function App() {
   const [url, setUrl] = useUrlState();
+  useLayoutEffect(() => rememberLang(url.lang), [url.lang]);
+  return (
+    <LangContext.Provider value={url.lang}>
+      <MediaProvider>
+        <Page url={url} setUrl={setUrl} />
+      </MediaProvider>
+    </LangContext.Provider>
+  );
+}
+
+function Page({ url, setUrl }: { url: ReturnType<typeof useUrlState>[0]; setUrl: ReturnType<typeof useUrlState>[1] }) {
+  const t = strings[url.lang];
+  const openMedia = useMedia();
   const [palette, setPalette] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const project = findProject(url.project);
+  const introWanted = useIntro();
+  const [intro, setIntro] = useState(introWanted);
+  const [heroReady, setHeroReady] = useState(!introWanted);
+  const localized = useMemo(() => projects.map((p) => localize(p, url.lang)), [url.lang]);
+  const stage = localized.filter((p) => p.tier === 'stage');
+  const project = stage.find((p) => p.id === url.project) ?? stage[0];
 
   const showToast = useCallback((m: string) => setToast(m), []);
   useEffect(() => {
     if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 2200);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => setToast(null), 2200);
+    return () => window.clearTimeout(timer);
   }, [toast]);
 
   // A shared link to a project opens with that project on stage.
@@ -57,57 +76,74 @@ export function App() {
   }, [setUrl]);
   const openStudio = useCallback(() => setUrl({ view: 'studio', project: null, layer: 'product' }), [setUrl]);
   const goContact = useCallback(() => scrollToId('contact'), []);
+  const other = url.lang === 'he' ? 'en' : 'he';
+  const switchLang = useCallback(() => setUrl({ lang: other }, 'replace'), [setUrl, other]);
+  const showDiploma = useCallback(() => {
+    const d = profile.diploma;
+    openMedia({ kind: 'image', src: d.src, alt: t.creds.certAlt, w: d.w, h: d.h, title: t.creds.certTitle, note: t.creds.redacted });
+  }, [openMedia, t]);
+  const endIntro = useCallback(() => setIntro(false), []);
+  const revealHero = useCallback(() => setHeroReady(true), []);
 
-  const commands = useMemo<Command[]>(
-    () => [
-      ...stageProjects.map((p) => ({ id: p.id, label: p.name, hint: p.specialty, run: () => openProject(p.id) })),
-      ...projects
-        .filter((p) => p.tier === 'shelf')
-        .map((p) => ({ id: p.id, label: p.name, hint: `${p.specialty} · code`, run: () => window.open(p.repo!, '_blank', 'noopener') })),
-      { id: 'overview', label: 'Quick overview', hint: 'one page', run: openOverview },
-      { id: 'process', label: 'How I build with AI', hint: 'process', run: () => { openStudio(); scrollToId('process'); } },
-      { id: 'contact', label: 'Contact', hint: 'email, GitHub, LinkedIn', run: goContact },
-      { id: 'copy', label: 'Copy email address', hint: profile.email, run: async () => showToast((await copyText(profile.email)) ? 'Email copied' : profile.email) },
-      { id: 'cv', label: hasCv ? 'Open CV' : 'Request CV by email', hint: 'CV', run: () => window.open(hasCv ? profile.cvPath : `mailto:${profile.email}?subject=CV%20request`, '_blank') },
-      { id: 'github', label: 'GitHub profile', hint: 'github.com/gad-rapaport', run: () => window.open(profile.github, '_blank', 'noopener') },
-    ],
-    [openProject, openOverview, openStudio, goContact, showToast],
-  );
+  const commands = useMemo<Command[]>(() => {
+    const p = t.palette;
+    return [
+      ...stage.map((x) => ({ id: x.id, label: x.name, hint: x.specialty, run: () => openProject(x.id) })),
+      ...localized
+        .filter((x) => x.tier === 'shelf')
+        .map((x) => ({ id: x.id, label: x.name, hint: `${x.specialty} · ${p.code}`, run: () => window.open(x.repo!, '_blank', 'noopener') })),
+      { id: 'overview', label: p.overview, hint: p.overviewHint, run: openOverview },
+      { id: 'process', label: p.process, hint: p.processHint, run: () => { openStudio(); scrollToId('process'); } },
+      { id: 'diploma', label: p.diploma, hint: 'MAHAT · DevOps', run: showDiploma },
+      { id: 'contact', label: p.contact, hint: p.contactHint, run: goContact },
+      { id: 'copy', label: p.copy, hint: profile.email, run: async () => showToast((await copyText(profile.email)) ? t.contact.copied : profile.email) },
+      { id: 'cv', label: p.cv, hint: 'PDF', run: () => window.open(hasCv ? profile.cv[url.lang] : `mailto:${profile.email}?subject=CV%20request`, '_blank') },
+      { id: 'lang', label: p.lang, hint: other.toUpperCase(), run: switchLang },
+      { id: 'github', label: p.github, hint: 'github.com/gad-rapaport', run: () => window.open(profile.github, '_blank', 'noopener') },
+    ];
+  }, [t, stage, localized, openProject, openOverview, openStudio, goContact, showToast, showDiploma, switchLang, other, url.lang]);
 
   return (
     <ToastContext.Provider value={showToast}>
-      <MediaProvider>
-        <a className="skip-link" href={url.view === 'overview' ? '#main' : '#work'}>
-          Skip to {url.view === 'overview' ? 'content' : 'projects'}
-        </a>
-        <Intro />
-        <TopBar view={url.view} onPalette={() => setPalette(true)} onOverview={openOverview} onStudio={openStudio} />
+      <a className="skip-link" href={url.view === 'overview' ? '#main' : '#work'}>
+        {url.view === 'overview' ? t.skipContent : t.skipProjects}
+      </a>
+      {intro && <Intro onReveal={revealHero} onDone={endIntro} />}
+      <TopBar
+        view={url.view}
+        langHref={urlFor({ ...url, lang: other })}
+        onLang={switchLang}
+        onPalette={() => setPalette(true)}
+        onOverview={openOverview}
+        onStudio={openStudio}
+      />
 
-        {url.view === 'overview' ? (
-          <Overview onProject={openProject} />
-        ) : (
-          <main id="main">
-            <Hero onOverview={openOverview} onProject={openProject} />
-            <Studio
-              project={project}
-              layer={url.layer}
-              onProject={(id) => setUrl({ project: id, layer: 'product' })}
-              onLayer={(layer) => setUrl({ project: project.id, layer }, 'replace')}
-            />
-            <Shelf />
-            <Process />
-          </main>
-        )}
-        <Contact />
-        <Footer />
+      {url.view === 'overview' ? (
+        <Overview onProject={openProject} />
+      ) : (
+        <main id="main">
+          <Hero onOverview={openOverview} onProject={openProject} ready={heroReady} />
+          <Marquee />
+          <Studio
+            project={project}
+            layer={url.layer}
+            onProject={(id) => setUrl({ project: id, layer: 'product' })}
+            onLayer={(layer) => setUrl({ project: project.id, layer }, 'replace')}
+          />
+          <Shelf />
+          <Process />
+          <Credentials />
+        </main>
+      )}
+      <Contact />
+      <Footer />
 
-        <CommandPalette open={palette} onClose={() => setPalette(false)} commands={commands} />
-        {toast && (
-          <div className="toast" role="status">
-            {toast}
-          </div>
-        )}
-      </MediaProvider>
+      <CommandPalette open={palette} onClose={() => setPalette(false)} commands={commands} />
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
+        </div>
+      )}
     </ToastContext.Provider>
   );
 }

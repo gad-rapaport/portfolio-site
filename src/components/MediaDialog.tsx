@@ -1,14 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useT } from '../i18n';
 import { IconClose } from './Icons';
 
 export type Media =
   | { kind: 'film'; src: string; poster: string; title: string; repo: string | null }
-  | { kind: 'image'; src: string; alt: string; w: number; h: number; title: string };
+  | { kind: 'image'; src: string; alt: string; w: number; h: number; title: string; note?: string };
 
 const Ctx = createContext<(m: Media) => void>(() => {});
 export const useMedia = () => useContext(Ctx);
 
 export function MediaProvider({ children }: { children: ReactNode }) {
+  const t = useT();
   const [media, setMedia] = useState<Media | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
@@ -33,7 +35,7 @@ export function MediaProvider({ children }: { children: ReactNode }) {
       {children}
       <dialog
         ref={dialog}
-        className="film"
+        className={`film${media?.kind === 'image' && media.h > media.w ? ' film--tall' : ''}`}
         aria-label={media?.title}
         onClose={onClose}
         onClick={(e) => {
@@ -44,7 +46,7 @@ export function MediaProvider({ children }: { children: ReactNode }) {
           <>
             <div className="film__bar">
               <strong>{media.title}</strong>
-              <button type="button" className="icon-btn" onClick={() => dialog.current?.close()} aria-label="Close">
+              <button type="button" className="icon-btn" onClick={() => dialog.current?.close()} aria-label={t.media.close}>
                 <IconClose />
               </button>
             </div>
@@ -52,8 +54,7 @@ export function MediaProvider({ children }: { children: ReactNode }) {
               <>
                 <video src={media.src} poster={media.poster} controls autoPlay muted playsInline width={1920} height={1080} />
                 <p className="film__note">
-                  Rendered from code in the project’s animation/ folder; it shows only real screens and real numbers from the
-                  product. No sound.{' '}
+                  {t.media.filmNote}{' '}
                   {media.repo && (
                     <a href={`${media.repo}/releases/tag/v0.1.0`} target="_blank" rel="noreferrer">
                       Release v0.1.0
@@ -62,7 +63,10 @@ export function MediaProvider({ children }: { children: ReactNode }) {
                 </p>
               </>
             ) : (
-              <img src={media.src} alt={media.alt} width={media.w} height={media.h} />
+              <>
+                <img src={media.src} alt={media.alt} width={media.w} height={media.h} />
+                {media.note && <p className="film__note">{media.note}</p>}
+              </>
             )}
           </>
         )}

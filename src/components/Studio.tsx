@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { stageProjects, type LayerId, type NodeKind, type Project } from '../data/projects';
+import type { LayerId, NodeKind, Project } from '../data/projects';
+import { useProjects, useT } from '../i18n';
 import { MissionReplay } from '../demos/MissionReplay';
 import { ContentionReplay } from '../demos/ContentionReplay';
 import { BranchDemo } from '../demos/BranchDemo';
@@ -8,11 +9,7 @@ import { useMedia } from './MediaDialog';
 import { IconLayers, IconPlay } from './Icons';
 import { useReducedMotion } from '../lib/motion';
 
-const LAYERS: { id: LayerId; label: string }[] = [
-  { id: 'product', label: 'Product' },
-  { id: 'hood', label: 'Under the hood' },
-  { id: 'build', label: 'Build process' },
-];
+const LAYERS: LayerId[] = ['product', 'hood', 'build'];
 
 interface Props {
   project: Project;
@@ -22,14 +19,19 @@ interface Props {
 }
 
 export function Studio({ project, layer, onProject, onLayer }: Props) {
+  const t = useT();
+  const { stage } = useProjects();
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
 
   function onRailKey(e: KeyboardEvent, i: number) {
-    const n = stageProjects.length;
-    const next = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (i + 1) % n : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (i - 1 + n) % n : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : -1;
+    const n = stage.length;
+    const rtl = t.dir === 'rtl';
+    const fwd = e.key === 'ArrowDown' || e.key === (rtl ? 'ArrowLeft' : 'ArrowRight');
+    const back = e.key === 'ArrowUp' || e.key === (rtl ? 'ArrowRight' : 'ArrowLeft');
+    const next = fwd ? (i + 1) % n : back ? (i - 1 + n) % n : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : -1;
     if (next < 0) return;
     e.preventDefault();
-    onProject(stageProjects[next].id);
+    onProject(stage[next].id);
     tabs.current[next]?.focus();
   }
 
@@ -38,17 +40,14 @@ export function Studio({ project, layer, onProject, onLayer }: Props) {
       <div className="wrap">
         <div className="section__head">
           <div>
-            <p className="eyebrow">The studio · 4 case studies</p>
-            <h2 id="work-title">Open a project.</h2>
+            <p className="eyebrow">{t.studio.eyebrow}</p>
+            <h2 id="work-title" className="scroll-rise">{t.studio.title}</h2>
           </div>
-          <p>
-            Each one opens in three layers: the product, what is under the hood, and how it was built. Every number comes from the
-            project’s own tests and documents. Use the arrow keys to move between projects.
-          </p>
+          <p>{t.studio.intro}</p>
         </div>
 
-        <div className="rail" role="tablist" aria-label="Projects">
-          {stageProjects.map((p, i) => (
+        <div className="rail" role="tablist" aria-label={t.studio.tabs}>
+          {stage.map((p, i) => (
             <button
               key={p.id}
               ref={(el) => {
@@ -65,51 +64,47 @@ export function Studio({ project, layer, onProject, onLayer }: Props) {
               <span className="rail__num">0{i + 1}</span>
               <span className="rail__name">{p.name}</span>
               <span className="rail__spec">{p.specialty}</span>
-              {i === 0 && <span className="rail__flag">FLAGSHIP</span>}
+              {i === 0 && <span className="rail__flag">{t.studio.flagship}</span>}
             </button>
           ))}
         </div>
 
         <div className="stage" id="stage" role="tabpanel" aria-labelledby={`tab-${project.id}`}>
-          <div className="stage__canvas">
+          <div className="stage__canvas" key={project.id}>
             <Canvas project={project} />
             <Gallery project={project} />
+            <span className="stage__wipe" aria-hidden="true" />
           </div>
-          <div className="stage__panel">
+          <div className="stage__panel" key={`panel-${project.id}`}>
             <div className="stage__title">
               <h3>{project.name}</h3>
               <p>{project.tagline}</p>
               <div className="stage__meta">
                 <span>{project.status}</span>
-                <span>updated {project.updated}</span>
+                <span>
+                  {t.studio.updated} {project.updated}
+                </span>
                 {project.repo ? (
-                  <a href={project.repo} target="_blank" rel="noreferrer">
+                  <a href={project.repo} target="_blank" rel="noreferrer" dir="ltr">
                     github.com/gad-rapaport/{project.id} ↗
                   </a>
                 ) : (
-                  <span>code: private repository, walkthrough on request</span>
+                  <span>{t.studio.privateCode}</span>
                 )}
               </div>
             </div>
 
-            <div className="layers" role="tablist" aria-label={`${project.name} layers`}>
+            <div className="layers" role="tablist" aria-label={t.studio.layersAria(project.name)}>
               {LAYERS.map((l) => (
-                <button
-                  key={l.id}
-                  role="tab"
-                  id={`layer-${l.id}`}
-                  aria-selected={l.id === layer}
-                  aria-controls="layer-panel"
-                  onClick={() => onLayer(l.id)}
-                >
-                  {l.label}
+                <button key={l} role="tab" id={`layer-${l}`} aria-selected={l === layer} aria-controls="layer-panel" onClick={() => onLayer(l)}>
+                  {t.studio.layers[l]}
                 </button>
               ))}
             </div>
 
-            <div className="layer" id="layer-panel" role="tabpanel" aria-labelledby={`layer-${layer}`} tabIndex={0}>
+            <div className="layer" id="layer-panel" role="tabpanel" aria-labelledby={`layer-${layer}`} tabIndex={0} key={layer}>
               {layer === 'product' && <ProductLayer p={project} />}
-              {layer === 'hood' && <HoodLayer p={project} key={project.id} />}
+              {layer === 'hood' && <HoodLayer p={project} />}
               {layer === 'build' && <BuildLayer p={project} />}
             </div>
           </div>
@@ -135,24 +130,24 @@ function Canvas({ project }: { project: Project }) {
 }
 
 function Gallery({ project }: { project: Project }) {
+  const t = useT();
   const open = useMedia();
   if (!project.film && project.shots.length === 0) return null;
   return (
-    <div className="canvas__foot" style={{ borderTop: '1px solid var(--line)', alignItems: 'stretch', padding: 0 }}>
+    <div className="canvas__foot canvas__foot--gallery">
       {project.film && (
         <button
           type="button"
           className="btn btn--small btn--red"
-          style={{ margin: '14px 0 14px 14px', alignSelf: 'center' }}
-          onClick={() => open({ kind: 'film', src: project.film!, poster: project.poster!, title: `${project.name} — product film`, repo: project.repo })}
+          onClick={() => open({ kind: 'film', src: project.film!, poster: project.poster!, title: t.media.filmTitle(project.name), repo: project.repo })}
         >
-          <IconPlay /> Watch the film
+          <IconPlay className="flip" /> {t.studio.watchFilm}
         </button>
       )}
-      <div className="gallery" aria-label={`${project.name} screenshots`} role="group">
+      <div className="gallery" aria-label={t.studio.shotsAria(project.name)} role="group">
         {project.shots.map((s) => (
-          <button key={s.file} type="button" aria-label={`Enlarge: ${s.alt}`} onClick={() => open({ kind: 'image', ...s, src: s.file, title: project.name })}>
-            <img src={s.file} alt={s.alt} width={s.w} height={s.h} loading="lazy" style={{ width: 'auto' }} />
+          <button key={s.file} type="button" aria-label={`${t.studio.enlarge}: ${s.alt}`} onClick={() => open({ kind: 'image', ...s, src: s.file, title: project.name })}>
+            <img src={s.file} alt="" width={s.w} height={s.h} loading="lazy" style={{ width: 'auto' }} />
           </button>
         ))}
       </div>
@@ -163,8 +158,8 @@ function Gallery({ project }: { project: Project }) {
 function Evidence({ items }: { items: { value: string; label: string }[] }) {
   return (
     <dl className="evidence">
-      {items.map((e) => (
-        <div key={e.label}>
+      {items.map((e, i) => (
+        <div key={e.label} style={{ ['--i' as string]: i }}>
           <dt>{e.value}</dt>
           <dd>{e.label}</dd>
         </div>
@@ -174,17 +169,18 @@ function Evidence({ items }: { items: { value: string; label: string }[] }) {
 }
 
 function ProductLayer({ p }: { p: Project }) {
+  const t = useT();
   return (
     <>
-      <h4>The problem</h4>
+      <h4>{t.studio.problem}</h4>
       <p>{p.problem}</p>
-      <h4>What I built</h4>
+      <h4>{t.studio.built}</h4>
       <ul>
         {p.built.map((b) => (
           <li key={b}>{b}</li>
         ))}
       </ul>
-      <h4>The moment to look for</h4>
+      <h4>{t.studio.moment}</h4>
       <p>{p.moment}</p>
       <Evidence items={p.evidence} />
     </>
@@ -192,9 +188,9 @@ function ProductLayer({ p }: { p: Project }) {
 }
 
 const KIND_ORDER: NodeKind[] = ['ui', 'api', 'service', 'agent', 'data'];
-const KIND_LABEL: Record<NodeKind, string> = { ui: 'UI', api: 'API', service: 'Services', agent: 'Agents', data: 'Data' };
 
 function HoodLayer({ p }: { p: Project }) {
+  const t = useT();
   const reduced = useReducedMotion();
   const [revealed, setRevealed] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -207,9 +203,9 @@ function HoodLayer({ p }: { p: Project }) {
     if (revealed || reduced) return;
     start.current = performance.now();
     const tick = (now: number) => {
-      const t = Math.min(1, (now - start.current) / 600);
-      setProgress(t);
-      if (t < 1) raf.current = requestAnimationFrame(tick);
+      const x = Math.min(1, (now - start.current) / 600);
+      setProgress(x);
+      if (x < 1) raf.current = requestAnimationFrame(tick);
       else setRevealed(true);
     };
     raf.current = requestAnimationFrame(tick);
@@ -226,7 +222,7 @@ function HoodLayer({ p }: { p: Project }) {
 
   return (
     <>
-      <h4>The system</h4>
+      <h4>{t.studio.system}</h4>
       {!revealed && (
         <button
           type="button"
@@ -239,14 +235,14 @@ function HoodLayer({ p }: { p: Project }) {
           onClick={() => setRevealed(true)}
         >
           <span className="reveal__fill" />
-          <IconLayers /> Reveal the system <span className="mono" style={{ opacity: 0.7 }}>hold or click</span>
+          <IconLayers /> {t.studio.reveal} <span className="mono" style={{ opacity: 0.7 }}>{t.studio.revealHint}</span>
         </button>
       )}
       <div className="arch" data-revealed={revealed}>
         {kinds.map((k, i) => (
-          <div className="arch__row" key={k}>
-            <span className="arch__kind">{KIND_LABEL[k]}</span>
-            <div className="arch__nodes">
+          <div className="arch__row" key={k} style={{ ['--i' as string]: i }}>
+            <span className="arch__kind">{t.studio.kinds[k]}</span>
+            <div className="arch__nodes" dir="ltr">
               {p.architecture
                 .filter((n) => n.kind === k)
                 .map((n) => (
@@ -267,10 +263,10 @@ function HoodLayer({ p }: { p: Project }) {
         ))}
         {revealed && node && (
           <div className="arch__detail" aria-live="polite">
-            <strong>{node.label}</strong> — {node.role}
+            <strong dir="ltr">{node.label}</strong> — {node.role}
             {node.file && p.repo && (
               <div>
-                <a href={`${p.repo}/tree/main/${node.file}`} target="_blank" rel="noreferrer">
+                <a href={`${p.repo}/tree/main/${node.file}`} target="_blank" rel="noreferrer" dir="ltr">
                   {node.file} ↗
                 </a>
               </div>
@@ -279,18 +275,18 @@ function HoodLayer({ p }: { p: Project }) {
         )}
       </div>
 
-      <h4>A decision worth reading</h4>
+      <h4>{t.studio.decision}</h4>
       <figure className="decision">
         <h5>{p.decision.title}</h5>
         <dl>
-          <dt>chose</dt>
+          <dt>{t.studio.chose}</dt>
           <dd>{p.decision.choice}</dd>
-          <dt>instead of</dt>
+          <dt>{t.studio.instead}</dt>
           <dd>{p.decision.alternative}</dd>
-          <dt>price</dt>
+          <dt>{t.studio.price}</dt>
           <dd>{p.decision.cost}</dd>
         </dl>
-        <small>
+        <small dir="ltr">
           {p.repo ? (
             <a href={`${p.repo}/blob/main/${p.decision.source}`} target="_blank" rel="noreferrer">
               {p.decision.source} ↗
@@ -301,8 +297,8 @@ function HoodLayer({ p }: { p: Project }) {
         </small>
       </figure>
 
-      <h4>Stack</h4>
-      <ul className="chips">
+      <h4>{t.studio.stack}</h4>
+      <ul className="chips" dir="ltr">
         {p.stack.map((s) => (
           <li key={s}>{s}</li>
         ))}
@@ -312,31 +308,25 @@ function HoodLayer({ p }: { p: Project }) {
 }
 
 function BuildLayer({ p }: { p: Project }) {
+  const t = useT();
   return (
     <>
-      <h4>How it was built</h4>
-      <ol className="pipeline" aria-label="Process">
-        <li>written spec + rules</li>
-        <li>plan</li>
-        <li>small change</li>
-        <li>diff review</li>
-        <li>tests</li>
-        <li>decision record</li>
+      <h4>{t.studio.howBuilt}</h4>
+      <ol className="pipeline" aria-label={t.studio.pipelineAria}>
+        {t.studio.pipeline.map((s) => (
+          <li key={s}>{s}</li>
+        ))}
       </ol>
-      <p>
-        {p.id === 'devmarshal'
-          ? 'Built with Claude Code and Codex working under MASTER.md, a constitution in the repository that every agent reads first: one backlog task at a time, its validation run for real, expensive decisions written down before the code. DevMarshal now runs that loop itself.'
-          : 'Built with Claude Code and Codex from a written brief. The agents wrote code; the acceptance gate was the test suite and CI, and every trade-off went into DECISIONS.md with the alternative that was rejected.'}
-      </p>
-      <h4>Tests</h4>
+      <p>{p.id === 'devmarshal' ? t.studio.buildDm : t.studio.buildOther}</p>
+      <h4>{t.studio.tests}</h4>
       <Evidence items={p.build.tests} />
-      <h4>Checked on every push</h4>
+      <h4>{t.studio.checks}</h4>
       <ul>
         {p.build.checks.map((c) => (
           <li key={c}>{c}</li>
         ))}
       </ul>
-      <h4>Read next</h4>
+      <h4>{t.studio.readNext}</h4>
       <ul>
         {p.build.docs.map((d) =>
           p.repo && d.path ? (

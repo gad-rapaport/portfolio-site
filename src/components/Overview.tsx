@@ -1,42 +1,50 @@
 import { hasCv, profile } from '../data/profile';
-import { projects } from '../data/projects';
+import { useLang, useProjects, useT } from '../i18n';
+import { useMedia } from './MediaDialog';
 
 // The short path: everything an interviewer needs on one calm page, no motion and no pinned scenes.
 // It is also the fallback for reduced motion and slow devices.
 
-const skills = [
-  { name: 'Backend and databases', proof: 'Slotkeeper: exclusion constraints, advisory locks, idempotency; Fieldline: roles and conflicts on the server' },
-  { name: 'Frontend', proof: 'Planwright: state design, undo/redo, offline, accessibility, a size budget' },
-  { name: 'APIs and integration', proof: 'Airwise: schema validation, retries, circuit breaker, call budget' },
-  { name: 'DevOps and security', proof: 'Signalpost: SSRF-safe outbound policy, backups, drills; hardened Docker and CI in all five' },
-  { name: 'Working with AI agents', proof: 'DevMarshal: orchestrating Codex and Claude Code with real validation and crash recovery' },
-  { name: 'Testing', proof: 'Unit, integration against real services and Playwright E2E with axe, in CI for every project' },
-];
-
 export function Overview({ onProject }: { onProject: (id: string) => void }) {
+  const t = useT();
+  const o = t.overview;
+  const lang = useLang();
+  const { all } = useProjects();
+  const open = useMedia();
+  const d = profile.diploma;
   return (
     <main className="overview" id="main">
       <div className="wrap">
-        <p className="eyebrow" style={{ color: 'var(--muted-ink)' }}>Quick overview</p>
-        <h1>{profile.name}</h1>
-        <p className="lead">
-          Software developer, early in my career. Full-stack apps, backends and automation in React, TypeScript and Python, with
-          PostgreSQL, SQLite and Docker. I work with Claude Code and Codex, and I built the tool that runs them as a team.
-        </p>
+        <p className="eyebrow" style={{ color: 'var(--muted-ink)' }}>{o.eyebrow}</p>
+        <h1>{t.name}</h1>
+        <p className="lead">{o.lead}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          <a className="btn" href={`mailto:${profile.email}`}>{profile.email}</a>
+          <a className="btn" href={`mailto:${profile.email}`} dir="ltr">{profile.email}</a>
           <a className="btn" href={profile.github} target="_blank" rel="noreferrer">GitHub</a>
           <a className="btn" href={profile.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
           {hasCv ? (
-            <a className="btn" href={profile.cvPath} target="_blank" rel="noreferrer">CV (PDF)</a>
+            <a className="btn" href={profile.cv[lang]} target="_blank" rel="noreferrer">{t.contact.cv}</a>
           ) : (
-            <a className="btn" href={`mailto:${profile.email}?subject=${encodeURIComponent('CV request')}`}>Request CV</a>
+            <a className="btn" href={`mailto:${profile.email}?subject=${encodeURIComponent('CV request')}`}>{t.contact.requestCv}</a>
           )}
         </div>
 
-        <h2>Projects</h2>
+        <h2>{o.education}</h2>
+        <p className="ov-edu">
+          <strong>{t.creds.degree} — {t.creds.track}</strong>
+          <span>{t.creds.school} {t.creds.eligible} {t.creds.eligibleDate}.</span>
+          <button
+            type="button"
+            className="linklike"
+            onClick={() => open({ kind: 'image', src: d.src, alt: t.creds.certAlt, w: d.w, h: d.h, title: t.creds.certTitle, note: t.creds.redacted })}
+          >
+            {t.creds.view}
+          </button>
+        </p>
+
+        <h2>{o.projects}</h2>
         <ul className="ov-list">
-          {projects.map((p) => (
+          {all.map((p) => (
             <li key={p.id}>
               <div>
                 <strong>{p.name}</strong>
@@ -55,25 +63,25 @@ export function Overview({ onProject }: { onProject: (id: string) => void }) {
                       onProject(p.id);
                     }}
                   >
-                    Case study
+                    {o.caseStudy}
                   </a>
                 )}
                 {p.repo ? (
-                  <a href={p.repo} target="_blank" rel="noreferrer">Code ↗</a>
+                  <a href={p.repo} target="_blank" rel="noreferrer">{o.code}</a>
                 ) : (
-                  <span>private repo</span>
+                  <span>{o.private}</span>
                 )}
               </div>
             </li>
           ))}
         </ul>
 
-        <h2>Skills, with the proof</h2>
+        <h2>{o.skills}</h2>
         <div className="ov-skills">
-          {skills.map((s) => (
-            <div key={s.name}>
-              <b>{s.name}</b>
-              <span>{s.proof}</span>
+          {o.skillList.map(([name, proof]) => (
+            <div key={name}>
+              <b>{name}</b>
+              <span>{proof}</span>
             </div>
           ))}
         </div>

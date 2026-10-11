@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useT } from '../i18n';
 
 export interface Command {
   id: string;
@@ -10,6 +11,7 @@ export interface Command {
 // Ctrl/⌘+K: jump to a project, the overview or contact details. Everything here is also reachable from the
 // visible navigation; the palette is a shortcut, not the only way.
 export function CommandPalette({ open, onClose, commands }: { open: boolean; onClose: () => void; commands: Command[] }) {
+  const t = useT().palette;
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   const [q, setQ] = useState('');
@@ -41,7 +43,7 @@ export function CommandPalette({ open, onClose, commands }: { open: boolean; onC
     <dialog
       ref={dialog}
       className="palette"
-      aria-label="Command palette"
+      aria-label={t.aria}
       onClose={() => {
         onClose();
         opener.current?.focus();
@@ -53,8 +55,8 @@ export function CommandPalette({ open, onClose, commands }: { open: boolean; onC
       <input
         autoFocus
         value={q}
-        placeholder="Jump to a project, overview, contact…"
-        aria-label="Search commands"
+        placeholder={t.placeholder}
+        aria-label={t.search}
         role="combobox"
         aria-expanded="true"
         aria-controls="palette-list"
@@ -83,9 +85,9 @@ export function CommandPalette({ open, onClose, commands }: { open: boolean; onC
             <small>{c.hint}</small>
           </li>
         ))}
-        {list.length === 0 && <li aria-disabled="true">Nothing matches “{q}”</li>}
+        {list.length === 0 && <li aria-disabled="true">{t.none(q)}</li>}
       </ul>
-      <div className="palette__hint">↑ ↓ to move · Enter to open · Esc to close</div>
+      <div className="palette__hint">{t.hint}</div>
     </dialog>
   );
 }

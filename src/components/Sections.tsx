@@ -1,28 +1,73 @@
-import { profile, hasCv } from '../data/profile';
-import { projects, shelfProjects } from '../data/projects';
+import { Fragment, useEffect, useRef, type CSSProperties } from 'react';
+import { hasCv, profile } from '../data/profile';
+import { useLang, useProjects, useT } from '../i18n';
 import { copyText, useToast } from '../lib/copy';
+import { useReducedMotion } from '../lib/motion';
 import { useMedia } from './MediaDialog';
 import { IconArrow, IconCopy, IconDoc, IconDown, IconGitHub, IconLinkedIn, IconMail, IconPlay } from './Icons';
 
-const publicRepos = projects.filter((p) => p.repo).length;
+const icon: CSSProperties = { width: 20, verticalAlign: -4, marginInlineEnd: 8 };
 
-export function Hero({ onOverview, onProject }: { onOverview: () => void; onProject: (id: string) => void }) {
-  const [sk, pw, sp] = ['slotkeeper', 'planwright', 'signalpost'].map((id) => projects.find((p) => p.id === id)!);
+export function Hero({ onOverview, onProject, ready }: { onOverview: () => void; onProject: (id: string) => void; ready: boolean }) {
+  const delay = 80;
+  const t = useT();
+  const { all } = useProjects();
+  const reduced = useReducedMotion();
+  const collage = useRef<HTMLDivElement>(null);
+  const [sk, pw, sp] = ['slotkeeper', 'planwright', 'signalpost'].map((id) => all.find((p) => p.id === id)!);
+  const publicRepos = all.filter((p) => p.repo).length;
+
+  // The windows lean toward the pointer, each at its own depth. Fine pointers only, never with reduced motion.
+  useEffect(() => {
+    const el = collage.current;
+    if (!el || reduced || !window.matchMedia('(pointer: fine)').matches) return;
+    let raf = 0;
+    const onMove = (e: PointerEvent) => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        el.style.setProperty('--mx', ((e.clientX / window.innerWidth) * 2 - 1).toFixed(3));
+        el.style.setProperty('--my', ((e.clientY / window.innerHeight) * 2 - 1).toFixed(3));
+      });
+    };
+    window.addEventListener('pointermove', onMove);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      cancelAnimationFrame(raf);
+    };
+  }, [reduced]);
+
+  let w = 0;
+  const words = (line: string, cls?: string) =>
+    line.split(' ').map((word, i) => (
+      <Fragment key={`${word}-${i}`}>
+        <span className="w">
+          <span className={cls} style={{ ['--d' as string]: `${delay + w++ * 70}ms` }}>
+            {word}
+          </span>
+        </span>{' '}
+      </Fragment>
+    ));
+
   return (
-    <section className="hero" aria-labelledby="hero-title">
+    <section className="hero" aria-labelledby="hero-title" data-wait={ready ? undefined : ''}>
+      <div className="hero__glow" aria-hidden="true" />
       <div className="wrap hero__grid">
         <div>
-          <p className="eyebrow">{profile.name} — {profile.role}</p>
-          <h1 id="hero-title">
-            Working products. Real tests. <em>A team of AI agents</em> I direct.
-          </h1>
-          <p className="hero__lead">
-            I build full-stack apps, backends and automation in React, TypeScript and Python. I wrote DevMarshal so Claude Code
-            and Codex work as one team on my repositories — and nothing they claim counts until the tests actually run.
+          <p className="eyebrow rise" style={{ ['--d' as string]: `${delay}ms` }}>
+            {t.name} — {t.role} · {t.cert}
           </p>
-          <div className="hero__ctas">
+          <h1 id="hero-title" className="kinetic">
+            {words(t.hero.h1[0])}
+            {words(t.hero.h1[1])}
+            {words(t.hero.h1[2], 'hot')}
+            {words(t.hero.h1[3])}
+          </h1>
+          <p className="hero__lead rise" style={{ ['--d' as string]: `${delay + 650}ms` }}>
+            {t.hero.lead}
+          </p>
+          <div className="hero__ctas rise" style={{ ['--d' as string]: `${delay + 800}ms` }}>
             <a className="btn btn--red" href="#work">
-              Explore the studio <IconDown />
+              {t.hero.explore} <IconDown />
             </a>
             <a
               className="btn"
@@ -32,71 +77,97 @@ export function Hero({ onOverview, onProject }: { onOverview: () => void; onProj
                 onOverview();
               }}
             >
-              Quick overview <IconArrow />
+              {t.hero.overview} <IconArrow className="flip" />
             </a>
             <a className="btn" href="#contact">
-              Contact / CV
+              {t.hero.contact}
             </a>
           </div>
-          <ul className="hero__facts">
-            <li><b>{projects.length}</b> products</li>
-            <li><b>{publicRepos}</b> public repositories</li>
-            <li><b>3</b> levels of tests in each</li>
-            <li><b>1</b> orchestrator for AI agents</li>
+          <ul className="hero__facts rise" style={{ ['--d' as string]: `${delay + 950}ms` }}>
+            <li><b>{all.length}</b> {t.hero.facts[0]}</li>
+            <li><b>{publicRepos}</b> {t.hero.facts[1]}</li>
+            <li><b>3</b> {t.hero.facts[2]}</li>
+            <li><b>1</b> {t.hero.facts[3]}</li>
           </ul>
         </div>
 
-        <div className="collage" aria-label="Project windows">
+        <div className="collage" ref={collage} aria-label={t.hero.windows} dir="ltr" style={{ ['--d' as string]: `${delay + 200}ms` }}>
           <div className="collage__slab" />
-          <a className="win" href="?p=slotkeeper" onClick={(e) => { e.preventDefault(); onProject('slotkeeper'); }}>
+          <a className="win" style={{ ['--z' as string]: 1 }} href="?p=slotkeeper" onClick={(e) => { e.preventDefault(); onProject('slotkeeper'); }}>
             <div className="win__bar"><i /><i /><span>slotkeeper — 409</span></div>
-            <img src={sk.poster!} alt="Slotkeeper: the database lets exactly one booking in" width={1920} height={1080} />
+            <img src={sk.poster!} alt={t.hero.skAlt} width={1920} height={1080} />
           </a>
-          <a className="win win--log" href="?p=devmarshal" onClick={(e) => { e.preventDefault(); onProject('devmarshal'); }}>
+          <a className="win win--log" style={{ ['--z' as string]: 2.2 }} href="?p=devmarshal" onClick={(e) => { e.preventDefault(); onProject('devmarshal'); }}>
             <div className="win__bar"><i /><i /><span>devmarshal — mission log</span></div>
-            <ul className="minilog" aria-label="Excerpt of the real mission log">
-              <li><span className="dim">20:55:59</span> <span className="bad">TEST_FAILED</span> CSV-001: 1 failed</li>
-              <li><span className="dim">20:57:12</span> <span className="ok">TEST_PASSED</span> CSV-001: 15 passed</li>
-              <li><span className="dim">20:57:36</span> <span className="ok">REVIEW_APPROVED</span> Codex</li>
-              <li><span className="dim">20:58:03</span> <span className="bad">AGENT_UNAVAILABLE</span> quota</li>
-              <li><span className="dim">07:32:58</span> MISSION_RUNNING resumed</li>
-              <li><span className="dim">07:35:54</span> <span className="ok">MISSION_COMPLETED</span></li>
+            <ul className="minilog" aria-label={t.hero.logAria}>
+              <li style={{ ['--i' as string]: 0 }}><span className="dim">20:55:59</span> <span className="bad">TEST_FAILED</span> CSV-001: 1 failed</li>
+              <li style={{ ['--i' as string]: 1 }}><span className="dim">20:57:12</span> <span className="ok">TEST_PASSED</span> CSV-001: 15 passed</li>
+              <li style={{ ['--i' as string]: 2 }}><span className="dim">20:57:36</span> <span className="ok">REVIEW_APPROVED</span> Codex</li>
+              <li style={{ ['--i' as string]: 3 }}><span className="dim">20:58:03</span> <span className="bad">AGENT_UNAVAILABLE</span> quota</li>
+              <li style={{ ['--i' as string]: 4 }}><span className="dim">07:32:58</span> MISSION_RUNNING resumed</li>
+              <li style={{ ['--i' as string]: 5 }}><span className="dim">07:35:54</span> <span className="ok">MISSION_COMPLETED</span></li>
             </ul>
           </a>
-          <a className="win" href="?p=planwright" onClick={(e) => { e.preventDefault(); onProject('planwright'); }}>
+          <a className="win" style={{ ['--z' as string]: 1.6 }} href="?p=planwright" onClick={(e) => { e.preventDefault(); onProject('planwright'); }}>
             <div className="win__bar"><i /><i /><span>planwright — compare</span></div>
-            <img src={pw.poster!} alt="Planwright: comparing scenario outcomes month by month" width={1920} height={1080} />
+            <img src={pw.poster!} alt={t.hero.pwAlt} width={1920} height={1080} />
           </a>
-          <span className="visually-hidden">Also in the studio: {sp.name}, {sp.tagline}</span>
+          <span className="visually-hidden">{t.hero.alsoIn}: {sp.name}, {sp.tagline}</span>
         </div>
       </div>
     </section>
   );
 }
 
+// Two crossing bands of real numbers from the projects. Decorative: the same facts are on the page as text.
+export function Marquee() {
+  const t = useT();
+  const items = [...t.marquee, ...t.marquee];
+  return (
+    <div className="marquee" aria-hidden="true">
+      <div className="marquee__band marquee__band--ghost">
+        <div className="marquee__track marquee__track--rev">
+          {items.map((m, i) => (
+            <span key={i}>{m}</span>
+          ))}
+        </div>
+      </div>
+      <div className="marquee__band">
+        <div className="marquee__track">
+          {items.map((m, i) => (
+            <span key={i}>{m}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Shelf() {
+  const t = useT();
+  const { shelf } = useProjects();
   const open = useMedia();
   return (
     <section className="section" id="more" aria-labelledby="more-title" style={{ paddingTop: 0 }}>
       <div className="wrap">
         <div className="section__head">
           <div>
-            <p className="eyebrow">More builds · same standard</p>
-            <h2 id="more-title">Two more, ready to run.</h2>
+            <p className="eyebrow">{t.shelf.eyebrow}</p>
+            <h2 id="more-title" className="scroll-rise">{t.shelf.title}</h2>
           </div>
-          <p>Each with its own tests, CI, decision record and a 20-second film rendered from the product.</p>
+          <p>{t.shelf.intro}</p>
         </div>
         <div className="shelf">
-          {shelfProjects.map((p) => (
-            <article className="card" key={p.id}>
+          {shelf.map((p) => (
+            <article className="card scroll-rise" key={p.id}>
               <div className="card__media">
-                <img src={p.preview!} alt={`${p.name}: looping preview of the product film`} width={960} height={540} loading="lazy" />
+                <img src={p.preview!} alt={t.shelf.previewAlt(p.name)} width={960} height={540} loading="lazy" />
               </div>
               <div className="card__body">
                 <p className="eyebrow" style={{ margin: 0 }}>{p.specialty}</p>
                 <h3>{p.name}</h3>
                 <p>{p.tagline}</p>
-                <p><strong>The hard part:</strong> {p.moment}</p>
+                <p><strong>{t.shelf.hard}</strong> {p.moment}</p>
                 <dl className="evidence">
                   {p.evidence.map((e) => (
                     <div key={e.label}>
@@ -106,16 +177,16 @@ export function Shelf() {
                   ))}
                 </dl>
                 <div className="card__actions">
-                  <button type="button" className="btn btn--small btn--red" onClick={() => open({ kind: 'film', src: p.film!, poster: p.poster!, title: `${p.name} — product film`, repo: p.repo })}>
-                    <IconPlay /> Film
+                  <button type="button" className="btn btn--small btn--red" onClick={() => open({ kind: 'film', src: p.film!, poster: p.poster!, title: t.media.filmTitle(p.name), repo: p.repo })}>
+                    <IconPlay className="flip" /> {t.shelf.film}
                   </button>
                   {p.shots[0] && (
                     <button type="button" className="btn btn--small" onClick={() => open({ kind: 'image', ...p.shots[0], src: p.shots[0].file, title: p.name })}>
-                      Screenshot
+                      {t.shelf.shot}
                     </button>
                   )}
                   <a className="btn btn--small" href={p.repo!} target="_blank" rel="noreferrer">
-                    <IconGitHub /> Code
+                    <IconGitHub /> {t.shelf.code}
                   </a>
                 </div>
               </div>
@@ -128,90 +199,135 @@ export function Shelf() {
 }
 
 export function Process() {
+  const t = useT();
   return (
     <section className="section process" id="process" aria-labelledby="process-title">
       <div className="wrap">
         <div className="section__head">
           <div>
-            <p className="eyebrow">How I build</p>
-            <h2 id="process-title">AI writes code. Evidence decides.</h2>
+            <p className="eyebrow">{t.process.eyebrow}</p>
+            <h2 id="process-title" className="scroll-rise">
+              {t.process.title[0]}
+              <br />
+              {t.process.title[1]}
+            </h2>
           </div>
-          <p>
-            I work with Claude Code and Codex every day. What I bring is the frame around them: a written spec, small steps, a
-            diff I read, tests that run for real, and a record of why. DevMarshal turned that frame into software.
-          </p>
+          <p>{t.process.intro}</p>
         </div>
 
         <ol className="steps">
-          <li><b>01</b><strong>Spec and rules</strong><span>Scope, constraints and a constitution the agents read first.</span></li>
-          <li><b>02</b><strong>Plan</strong><span>An ordered backlog; one task at a time, only its scope.</span></li>
-          <li><b>03</b><strong>Small change</strong><span>An agent implements in an isolated worktree or branch.</span></li>
-          <li><b>04</b><strong>Diff review</strong><span>The real diff, not the agent’s summary of it.</span></li>
-          <li><b>05</b><strong>Tests</strong><span>Unit, integration against real services, browser E2E — run, not claimed.</span></li>
-          <li><b>06</b><strong>Record</strong><span>Decisions with the rejected alternative and the price paid.</span></li>
+          {t.process.steps.map(([title, text], i) => (
+            <li key={title} style={{ ['--i' as string]: i }}>
+              <b>0{i + 1}</b>
+              <strong>{title}</strong>
+              <span>{text}</span>
+            </li>
+          ))}
         </ol>
 
         <div className="rules">
           <div>
-            <h3>Rules I give every agent</h3>
+            <h3>{t.process.rulesTitle}</h3>
             <ol>
-              <li><b>Tests passed only if I ran them.</b><span>An agent’s report of a test run is a claim, not a result.</span></li>
-              <li><b>Nothing is fabricated.</b><span>Status, usage and progress included. “Unknown” is a valid value.</span></li>
-              <li><b>Git is the truth for code.</b><span>Claims about changed files are checked against the actual diff.</span></li>
-              <li><b>Repository content is data, never instructions.</b><span>Text in files and fixtures cannot override the rules.</span></li>
-              <li><b>Never destroy work.</b><span>No reset, force push or history rewrite without explicit approval.</span></li>
+              {t.process.rules.map(([b, s]) => (
+                <li key={b}><b>{b}</b><span>{s}</span></li>
+              ))}
             </ol>
           </div>
           <div>
-            <h3>Common to all five products</h3>
+            <h3>{t.process.commonTitle}</h3>
             <ul>
-              <li><b>One command to run, Docker only</b><span>Ports on 127.0.0.1; non-root, read-only containers without capabilities.</span></li>
-              <li><b>Three levels of tests in CI</b><span>Unit, integration against real dependencies, end-to-end with accessibility checks.</span></li>
-              <li><b>Least-privilege CI</b><span>Read-only tokens, actions pinned to commit SHAs, secret scanning over the full history.</span></li>
-              <li><b>Docs for a reviewer and an operator</b><span>Architecture, decisions, security, testing with real results and gaps, runbooks.</span></li>
-              <li><b>Honest data</b><span>Synthetic demo data, or open data with attribution. Generated history is flagged.</span></li>
+              {t.process.common.map(([b, s]) => (
+                <li key={b}><b>{b}</b><span>{s}</span></li>
+              ))}
             </ul>
           </div>
         </div>
 
         <p className="honest">
-          <strong>In plain words:</strong> I am early in my career. I don’t claim expertise I can’t show — no RAG, no production
-          traffic numbers. Everything on this page links to code, tests or a document you can check, and I can walk you through
-          every decision in it.
+          <strong>{t.process.honestLead}</strong> {t.process.honest}
         </p>
       </div>
     </section>
   );
 }
 
+export function Credentials() {
+  const t = useT();
+  const open = useMedia();
+  const d = profile.diploma;
+  const showDiploma = () => open({ kind: 'image', src: d.src, alt: t.creds.certAlt, w: d.w, h: d.h, title: t.creds.certTitle, note: t.creds.redacted });
+  return (
+    <section className="section creds" id="education" aria-labelledby="creds-title">
+      <div className="wrap creds__grid">
+        <div>
+          <p className="eyebrow">{t.creds.eyebrow}</p>
+          <h2 id="creds-title" className="scroll-rise">
+            {t.creds.title[0]}
+            <br />
+            <span className="hot">{t.creds.title[1]}</span>
+          </h2>
+          <div className="creds__card">
+            <p className="creds__degree">{t.creds.degree}</p>
+            <p className="creds__track">{t.creds.track}</p>
+            <p>{t.creds.school}</p>
+            <p>{t.creds.detail}</p>
+            <dl className="creds__meta">
+              <div><dt>{t.creds.eligible}</dt><dd>{t.creds.eligibleDate}</dd></div>
+              <div><dt>MAHAT · ORT</dt><dd>{t.creds.issued}</dd></div>
+            </dl>
+            <div className="card__actions">
+              <button type="button" className="btn btn--small btn--red" onClick={showDiploma}>{t.creds.view}</button>
+              <a className="btn btn--small" href={profile.cv.en} target="_blank" rel="noreferrer" hrefLang="en"><IconDoc /> {t.creds.cvEn}</a>
+              <a className="btn btn--small" href={profile.cv.he} target="_blank" rel="noreferrer" hrefLang="he"><IconDoc /> {t.creds.cvHe}</a>
+            </div>
+            <p className="creds__work">{t.creds.work}</p>
+          </div>
+        </div>
+        <button type="button" className="diploma" onClick={showDiploma} aria-label={t.creds.view}>
+          <img src={d.thumb} alt={t.creds.certAlt} width={480} height={679} loading="lazy" />
+          <span className="diploma__stamp" aria-hidden="true">DEVOPS</span>
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function Contact() {
+  const t = useT();
+  const lang = useLang();
+  const { all } = useProjects();
   const toast = useToast();
   async function copy() {
-    toast((await copyText(profile.email)) ? 'Email copied' : `Copy failed — the address is ${profile.email}`);
+    toast((await copyText(profile.email)) ? t.contact.copied : t.contact.copyFailed(profile.email));
   }
+  const other = lang === 'he' ? 'en' : 'he';
   return (
     <section className="section contact" id="contact" aria-labelledby="contact-title">
       <div className="wrap contact__grid">
-        <h2 id="contact-title">Let’s talk.</h2>
+        <h2 id="contact-title">{t.contact.title}</h2>
         <div className="contact__links">
           <div className="contact__row">
-            <a href={`mailto:${profile.email}`}><IconMail style={{ width: 20, verticalAlign: -4, marginRight: 8 }} />{profile.email}</a>
+            <a href={`mailto:${profile.email}`} dir="ltr"><IconMail style={icon} />{profile.email}</a>
             <button type="button" className="btn btn--small" onClick={copy}>
-              <IconCopy /> Copy
+              <IconCopy /> {t.contact.copy}
             </button>
           </div>
           <div className="contact__row">
-            <a href={profile.github} target="_blank" rel="noreferrer"><IconGitHub style={{ width: 20, verticalAlign: -4, marginRight: 8 }} />github.com/gad-rapaport</a>
-            <span className="mono">{publicRepos} public project repositories</span>
+            <a href={profile.github} target="_blank" rel="noreferrer" dir="ltr"><IconGitHub style={icon} />github.com/gad-rapaport</a>
+            <span className="mono">{t.contact.repos(all.filter((p) => p.repo).length)}</span>
           </div>
           <div className="contact__row">
-            <a href={profile.linkedin} target="_blank" rel="noreferrer"><IconLinkedIn style={{ width: 20, verticalAlign: -4, marginRight: 8 }} />LinkedIn</a>
+            <a href={profile.linkedin} target="_blank" rel="noreferrer"><IconLinkedIn style={icon} />LinkedIn</a>
           </div>
           <div className="contact__row">
             {hasCv ? (
-              <a href={profile.cvPath} target="_blank" rel="noreferrer"><IconDoc style={{ width: 20, verticalAlign: -4, marginRight: 8 }} />CV (PDF)</a>
+              <>
+                <a href={profile.cv[lang]} target="_blank" rel="noreferrer"><IconDoc style={icon} />{t.contact.cv}</a>
+                <a className="mono" href={profile.cv[other]} target="_blank" rel="noreferrer" hrefLang={other}>{t.contact.cvOther}</a>
+              </>
             ) : (
-              <a href={`mailto:${profile.email}?subject=${encodeURIComponent('CV request')}`}><IconDoc style={{ width: 20, verticalAlign: -4, marginRight: 8 }} />Request my CV</a>
+              <a href={`mailto:${profile.email}?subject=${encodeURIComponent('CV request')}`}><IconDoc style={icon} />{t.contact.requestCv}</a>
             )}
           </div>
         </div>

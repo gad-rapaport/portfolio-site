@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { LayerId } from '../data/projects';
+import { initialLang, type Lang } from '../i18n';
 
-// The page keeps the open project, layer and view in the address, so a link can be sent straight to one
-// project and the back button returns to where the reader was.
+// The page keeps the open project, layer, view and language in the address, so a link can be sent straight to
+// one project (in either language) and the back button returns to where the reader was.
 
 export interface UrlState {
   view: 'studio' | 'overview';
   project: string | null;
   layer: LayerId;
+  lang: Lang;
 }
 
 const layers: LayerId[] = ['product', 'hood', 'build'];
@@ -19,11 +21,13 @@ function read(): UrlState {
     view: q.get('view') === 'overview' ? 'overview' : 'studio',
     project: q.get('p'),
     layer: layer && layers.includes(layer) ? layer : 'product',
+    lang: initialLang(),
   };
 }
 
-function write(s: UrlState) {
+export function urlFor(s: UrlState) {
   const q = new URLSearchParams();
+  if (s.lang === 'he') q.set('lang', 'he');
   if (s.view === 'overview') q.set('view', 'overview');
   if (s.view === 'studio' && s.project) q.set('p', s.project);
   if (s.view === 'studio' && s.project && s.layer !== 'product') q.set('l', s.layer);
@@ -43,7 +47,7 @@ export function useUrlState() {
   const update = useCallback((next: Partial<UrlState>, mode: 'push' | 'replace' = 'push') => {
     setState((prev) => {
       const s = { ...prev, ...next };
-      const url = write(s);
+      const url = urlFor(s);
       if (url !== `${window.location.pathname}${window.location.search}`) {
         if (mode === 'push') window.history.pushState(null, '', url);
         else window.history.replaceState(null, '', url);

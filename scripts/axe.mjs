@@ -7,7 +7,7 @@ const browser = await chromium.launch();
 const ctx = await browser.newContext({ reducedMotion: 'reduce' });
 const page = await ctx.newPage();
 let failed = 0;
-for (const path of ['/', '/?p=slotkeeper&l=hood', '/?p=planwright&l=build', '/?p=signalpost', '/?view=overview']) {
+for (const path of ['/', '/?p=slotkeeper&l=hood', '/?p=planwright&l=build', '/?p=signalpost', '/?view=overview', '/?lang=he', '/?lang=he&p=devmarshal&l=hood', '/?lang=he&view=overview']) {
   await page.goto(base + path);
   await page.waitForTimeout(400);
   const { violations } = await new AxeBuilder({ page }).analyze();
