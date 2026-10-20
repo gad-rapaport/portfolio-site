@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useRef, type CSSProperties } from 'react';
+import { Fragment, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { asset } from '../data/asset';
 import { hasCv, profile } from '../data/profile';
 import { useLang, useProjects, useT } from '../i18n';
 import { copyText, useToast } from '../lib/copy';
@@ -140,6 +141,79 @@ export function Marquee() {
         </div>
       </div>
     </div>
+  );
+}
+
+// The 15-second showreel (source in showreel/). Plays muted while on screen; never autoplays with reduced motion.
+export function Showreel() {
+  const t = useT();
+  const reduced = useReducedMotion();
+  const video = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+
+  useEffect(() => {
+    const v = video.current;
+    if (!v || reduced) return;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) v.play().catch(() => {});
+      else v.pause();
+    }, { threshold: 0.35 });
+    io.observe(v);
+    return () => io.disconnect();
+  }, [reduced]);
+
+  const toggle = () => {
+    const v = video.current;
+    if (!v) return;
+    if (v.paused) v.play().catch(() => {});
+    else v.pause();
+  };
+  const toggleSound = () => {
+    const v = video.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setMuted(v.muted);
+    if (!v.muted && v.paused) v.play().catch(() => {});
+  };
+
+  return (
+    <section className="section reel" id="showreel" aria-labelledby="reel-title">
+      <div className="wrap">
+        <div className="section__head">
+          <div>
+            <p className="eyebrow">{t.showreel.eyebrow}</p>
+            <h2 id="reel-title" className="scroll-rise">{t.showreel.title}</h2>
+          </div>
+          <p>{t.showreel.intro}</p>
+        </div>
+        <figure className="reel__frame">
+          <video
+            ref={video}
+            src={asset('media/showreel/showreel.mp4')}
+            poster={asset('media/showreel/poster.jpg')}
+            width={1920}
+            height={1080}
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            aria-label={t.showreel.label}
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+            onClick={toggle}
+          />
+          <figcaption className="reel__controls">
+            <button type="button" className="btn btn--small" onClick={toggle} aria-pressed={playing}>
+              {playing ? t.showreel.pause : t.showreel.play}
+            </button>
+            <button type="button" className="btn btn--small" onClick={toggleSound} aria-pressed={!muted}>
+              {muted ? t.showreel.sound : t.showreel.mute}
+            </button>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
   );
 }
 

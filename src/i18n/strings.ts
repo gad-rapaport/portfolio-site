@@ -190,6 +190,17 @@ const en = {
     honest: 'I am early in my career. I don’t claim expertise I can’t show — no RAG, no production traffic numbers. Everything on this page links to code, tests or a document you can check, and I can walk you through every decision in it.',
   },
 
+  showreel: {
+    eyebrow: 'Showreel · 15 seconds',
+    title: 'One cursor builds the studio.',
+    intro: 'A loop made the way I make everything else: in code. Every frame is a pure function of time in one HTML file, the soundtrack is synthesised with the Web Audio API, and Playwright and ffmpeg render it at 60 fps with motion blur.',
+    sound: 'Sound on',
+    mute: 'Mute',
+    play: 'Play',
+    pause: 'Pause',
+    label: 'Showreel: a lime cursor multiplies into pixels, becomes the words Working products, Real tests, morphs into a check mark, six project bars in 3D, a dashboard, the DevMarshal agent network and the name Gadi Rapaport.',
+  },
+
   creds: {
     eyebrow: 'Education & certification',
     title: ['Certified.', 'Still building.'],
@@ -457,6 +468,17 @@ const he: Strings = {
     ],
     honestLead: 'במילים פשוטות:',
     honest: 'אני בתחילת הדרך. אני לא טוען למומחיות שאני לא יכול להראות — בלי RAG ובלי נתוני תעבורה מ־production. כל דבר בדף הזה מקושר לקוד, לבדיקות או למסמך שאפשר לבדוק, ואני יכול להסביר כל החלטה בו.',
+  },
+
+  showreel: {
+    eyebrow: 'שואוריל · 15 שניות',
+    title: 'סמן אחד בונה את הסטודיו.',
+    intro: 'לופ שנבנה כמו כל דבר אחר שאני בונה: בקוד. כל פריים הוא פונקציה טהורה של הזמן בקובץ HTML אחד, הפסקול מסונתז ב־Web Audio API, ו־Playwright ו־ffmpeg מרנדרים אותו ב־60 פריימים לשנייה עם טשטוש תנועה.',
+    sound: 'הפעלת סאונד',
+    mute: 'השתקה',
+    play: 'הפעלה',
+    pause: 'השהיה',
+    label: 'שואוריל: סמן ירוק מתפצל לפיקסלים, הופך למילים Working products, Real tests, משתנה לסימן וי, לשישה עמודי פרויקטים בתלת־ממד, ללוח בקרה, לרשת הסוכנים של DevMarshal ולשם גדי רפפורט.',
   },
 
   creds: {

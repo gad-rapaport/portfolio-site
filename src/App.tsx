@@ -7,7 +7,7 @@ import { strings } from './i18n/strings';
 import { projects } from './data/projects';
 import { MediaProvider, useMedia } from './components/MediaDialog';
 import { Footer, Intro, TopBar, useIntro } from './components/Chrome';
-import { Contact, Credentials, Hero, Marquee, Process } from './components/Sections';
+import { Contact, Credentials, Hero, Marquee, Process, Showreel } from './components/Sections';
 import { Builds } from './components/Builds';
 import { Studio } from './components/Studio';
 import { Overview } from './components/Overview';
@@ -125,6 +125,7 @@ function Page({ url, setUrl }: { url: ReturnType<typeof useUrlState>[0]; setUrl:
         <main id="main">
           <Hero onOverview={openOverview} onProject={openProject} ready={heroReady} />
           <Marquee />
+          <Showreel />
           <Studio
             project={project}
             layer={url.layer}

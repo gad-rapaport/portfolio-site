@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Showreel</title>
+<!--
+  "The cursor builds the studio." 15 s, 120 BPM, 1920x1080.
+  Every frame is a pure function of time: window.seek(t) rebuilds the SVG from t alone.
+  Rendered by showreel/render.mjs.
+-->
+<style>
+@font-face { font-family: SG; font-weight: 700; src: url(../node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2) format('woff2'); }
+@font-face { font-family: SG; font-weight: 500; src: url(../node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-500-normal.woff2) format('woff2'); }
+html, body { margin: 0; background: #101014; overflow: hidden; }
+svg { display: block; }
+</style>
+</head>
+<body>
+<svg id="stage" xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"></svg>
+<script>
+'use strict';
+const W = 1920, H = 1080, CX = W / 2, CY = H / 2, DUR = 15;
+const C = { ink: '#101014', ink2: '#1a1a20', ink3: '#26262e', paper: '#f4f0e8', muted: '#8d8d97', lime: '#c8ff31', red: '#ff3b30' };
+
+// ───────── math ─────────
+const clamp = (x, a = 0, b = 1) => (x < a ? a : x > b ? b : x);
+const lerp = (a, b, u) => a + (b - a) * u;
+const prog = (t, t0, d) => clamp((t - t0) / d);
+const eOut = (u, k = 8) => { u = clamp(u); return (1 - Math.pow(2, -k * u)) / (1 - Math.pow(2, -k)); };
+const eIn = (u, k = 8) => 1 - eOut(1 - u, k);
+const eInOut = (u, k = 8) => { u = clamp(u); return u < 0.5 ? eIn(u * 2, k) / 2 : 0.5 + eOut(u * 2 - 1, k) / 2; };
+// Damped spring step response, a function of time since the trigger. z close to 1: no visible bounce.
+function spring(dt, f = 3.2, z = 0.86) {
+  if (dt <= 0) return 0;
+  const w = 2 * Math.PI * f, wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * dt) * (Math.cos(wd * dt) + ((z * w) / wd) * Math.sin(wd * dt));
+}
+const hash = (n) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+const f2 = (n) => Math.round(n * 100) / 100;
+
+const rgb = (h) => (h[0] === '#' ? [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)) : h.match(/\d+/g).map(Number));
+function mix(a, b, u) {
+  const A = rgb(a), B = rgb(b);
+  return `rgb(${A.map((v, i) => Math.round(lerp(v, B[i], clamp(u)))).join(',')})`;
+}
+const shade = (h, k) => `rgb(${rgb(h).map((v) => Math.round(v * k)).join(',')})`;
+
+// ───────── motion blur ─────────
+// Gaussian blur along the direction of travel: rotate into the motion frame, blur on x only, rotate back.
+let defs = [], fid = 0;
+const EPS = 1 / 240;
+function blur(inner, vx, vy, cx, cy, r) {
+  const sp = Math.hypot(vx, vy), sig = Math.min(44, sp * 0.0042);
+  if (sig < 0.6) return inner;
+  const a = (Math.atan2(vy, vx) * 180) / Math.PI, id = 'b' + fid++, R = r + sig * 3 + 8;
+  defs.push(`<filter id="${id}" filterUnits="userSpaceOnUse" x="${f2(cx - R)}" y="${f2(cy - R)}" width="${f2(2 * R)}" height="${f2(2 * R)}"><feGaussianBlur stdDeviation="${f2(sig)} 0"/></filter>`);
+  return `<g transform="rotate(${f2(a)} ${f2(cx)} ${f2(cy)})" filter="url(#${id})"><g transform="rotate(${f2(-a)} ${f2(cx)} ${f2(cy)})">${inner}</g></g>`;
+}
+let cid = 0;
+function clip(inner, shape) {
+  const id = 'c' + cid++;
+  defs.push(`<clipPath id="${id}">${shape}</clipPath>`);
+  return `<g clip-path="url(#${id})">${inner}</g>`;
+}
+const rect = (x, y, w, h, fill, extra = '') => `<rect x="${f2(x)}" y="${f2(y)}" width="${f2(Math.max(0, w))}" height="${f2(Math.max(0, h))}" fill="${fill}" ${extra}/>`;
+const poly = (pts, fill, extra = '') => `<polygon points="${pts.map((p) => f2(p[0]) + ',' + f2(p[1])).join(' ')}" fill="${fill}" ${extra}/>`;
+const text = (s, x, y, size, fill, weight = 700, extra = '') => `<text x="${f2(x)}" y="${f2(y)}" font-family="SG" font-weight="${weight}" font-size="${size}" fill="${fill}" ${extra}>${s.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>`;
+
+// A rectangle swept along its velocity over a short shutter: a streak instead of a gaussian for small, many things.
+function hull(P) {
+  P.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], up = [];
+  for (const p of P) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+function streak(x, y, w, h, vx, vy, fill) {
+  const s = 1 / 110, dx = vx * s / 2, dy = vy * s / 2;
+  if (Math.abs(dx) + Math.abs(dy) < 0.5) return rect(x - w / 2, y - h / 2, w, h, fill);
+  const pts = [];
+  for (const k of [-1, 1]) for (const [ox, oy] of [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]]) pts.push([x + ox + dx * k, y + oy + dy * k]);
+  return poly(hull(pts), fill);
+}
+
+// ───────── 3D ─────────
+const D3 = 1800;
+function cam(yawDeg, pitchDeg) {
+  const ya = (yawDeg * Math.PI) / 180, pa = (pitchDeg * Math.PI) / 180;
+  const cy = Math.cos(ya), sy = Math.sin(ya), cp = Math.cos(pa), sp = Math.sin(pa);
+  const rot = (X, Y, Z) => {
+    const X1 = X * cy + Z * sy, Z1 = -X * sy + Z * cy;
+    return [X1, Y * cp - Z1 * sp, Y * sp + Z1 * cp];
+  };
+  return {
+    rot,
+    p(X, Y, Z) { const [x, y, z] = rot(X, Y, Z); const k = D3 / (D3 - z); return [CX + x * k, CY - y * k, z]; },
+  };
+}
+const area = (q) => { let s = 0; for (let i = 0; i < q.length; i++) { const a = q[i], b = q[(i + 1) % q.length]; s += a[0] * b[1] - b[0] * a[1]; } return s / 2; };
+// Faces listed counter-clockwise from outside; visible faces come out with negative screen area.
+function boxFaces(cm, b) {
+  const { x0, x1, y0, y1, z0, z1 } = b;
+  const F = {
+    front: [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]],
+    back: [[x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0]],
+    right: [[x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1]],
+    left: [[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0]],
+    top: [[x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0]],
+  };
+  const out = [];
+  for (const k in F) {
+    const q = F[k].map((v) => cm.p(...v));
+    if (area(q) < -0.5) out.push({ k, q });
+  }
+  return out;
+}
+const depthOf = (cm, b) => cm.rot((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2)[2];
+// Affine map of a local 2D frame (u right, w down) onto a plane, from three projected points.
+function affine(O, U, V, du, dv) {
+  const a = (U[0] - O[0]) / du, b = (U[1] - O[1]) / du, c = (V[0] - O[0]) / dv, d = (V[1] - O[1]) / dv;
+  return `matrix(${[a, b, c, d, O[0], O[1]].map(f2).join(' ')})`;
+}
+
+// ───────── measurement (fixed data, built once after fonts load) ─────────
+const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+const cx2 = cv.getContext('2d', { willReadFrequently: true });
+const meas = (s, size, wt = 700) => { cx2.font = `${wt} ${size}px SG`; return cx2.measureText(s).width; };
+const xsOf = (s, size, wt = 700) => [...s].map((_, j) => meas(s.slice(0, j), size, wt));
+
+const FS = 200, LH = 190;
+const LINES = [
+  { txt: 'WORKING', beat: 2.0 },
+  { txt: 'PRODUCTS', beat: 2.5, period: true },
+  { txt: 'REAL', beat: 3.0 },
+  { txt: 'TESTS', beat: 3.5, period: true, red: true },
+];
+const PS = FS * 0.13, PGAP = FS * 0.035;
+let CAP = 140, L4 = [], LV = [], TG = [];
+
+const PROJ = [
+  ['DEVMARSHAL', 'AI tooling', 213, '', 'mission events'],
+  ['SLOTKEEPER', 'Backend', 30, '→1', 'requests → booking'],
+  ['PLANWRIGHT', 'Frontend', 117, ' KB', 'works offline'],
+  ['SIGNALPOST', 'DevOps', 0, '', 'redirects followed'],
+  ['FIELDLINE', 'Full stack', 409, '', 'never overwrites'],
+  ['AIRWISE', 'Integrations', 10, '', 'cities, one request'],
+];
+const HS = [480, 330, 410, 280, 370, 300];
+const NODES = [
+  { label: 'CODEX', dx: -560, dy: -250, h: 230 },
+  { label: 'CLAUDE CODE', dx: 560, dy: -250, h: 270 },
+  { label: 'GEMINI CLI', dx: -600, dy: 190, h: 170 },
+  { label: 'TESTS', dx: 600, dy: 190, h: 210, tests: true },
+  { label: 'GIT', dx: 0, dy: 330, h: 140 },
+];
+const TITLE = 'GADI RAPAPORT', TFS = 120, SUB = 'BUILD STUDIO  ·  FULL STACK  ·  DEVOPS  ·  AI AGENTS', SFS = 30;
+let TW = 0, TX0 = 0, SW = 0;
+
+function init() {
+  cx2.font = `700 ${FS}px SG`;
+  CAP = cx2.measureText('H').actualBoundingBoxAscent;
+  for (const L of LINES) {
+    L.xs = xsOf(L.txt, FS);
+    L.tw = meas(L.txt, FS);
+    L.w = L.tw + (L.period ? PGAP + PS : 0);
+    L.x0 = CX - L.w / 2;
+  }
+  // Pixels for WORKING: every 12 px cell that touches the glyphs, with the word centred on screen.
+  const G = 12, L = LINES[0], base = CY + CAP / 2;
+  cx2.clearRect(0, 0, W, H);
+  cx2.fillStyle = '#fff';
+  cx2.font = `700 ${FS}px SG`;
+  [...L.txt].forEach((ch, j) => cx2.fillText(ch, L.x0 + L.xs[j], base));
+  const img = cx2.getImageData(0, 0, W, H).data;
+  const on = (x, y) => img[(Math.round(y) * W + Math.round(x)) * 4 + 3] > 20;
+  const gx0 = Math.floor(L.x0 / G) * G, gy0 = Math.floor((base - CAP - 10) / G) * G;
+  for (let y = gy0; y < base + 20; y += G)
+    for (let x = gx0; x < L.x0 + L.w + 20; x += G) {
+      let hit = false;
+      for (let a = 0; a <= 4 && !hit; a++) for (let b = 0; b <= 4 && !hit; b++) hit = on(x + (a * (G - 1)) / 4, y + (b * (G - 1)) / 4);
+      if (hit) TG.push([x + G / 2, y + G / 2]);
+    }
+  // Hook hierarchy: 1 → 2 → 2×2 → 8×4 → 48×27. Each element springs out of its parent on its beat.
+  LV = [
+    [{ x: CX, y: CY, w: 52, h: 92, p: -1 }],
+    [-1, 1].map((s) => ({ x: CX + s * 150, y: CY, w: 52, h: 92, p: 0 })),
+    [],
+    [],
+  ];
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) LV[2].push({ x: CX + (c - 0.5) * 640, y: CY + (r - 0.5) * 330, w: 44, h: 78, p: c });
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) LV[3].push({ x: CX + (c - 3.5) * 210, y: CY + (r - 1.5) * 220, w: 30, h: 52, p: Math.floor(r / 2) * 2 + Math.floor(c / 4) });
+  for (let r = 0; r < 27; r++) for (let c = 0; c < 48; c++) L4.push({ x: 20 + c * 40, y: 20 + r * 40, w: 10, h: 10, p: Math.floor((r * 4) / 27) * 8 + Math.floor(c / 6), tg: -1, d: hash(r * 48 + c) * 0.05 });
+  // Each WORKING pixel is taken from the nearest free field dot (scaled so the word maps onto the whole field).
+  const used = new Uint8Array(L4.length);
+  const order = TG.map((p, i) => i).sort((a, b) => hash(a) - hash(b));
+  const bx0 = L.x0, bw = L.w, by0 = base - CAP, bh = CAP;
+  for (const i of order) {
+    const [tx, ty] = TG[i];
+    const mx = lerp(80, W - 80, (tx - bx0) / bw), my = lerp(120, H - 120, (ty - by0) / bh);
+    let best = -1, bd = 1e12;
+    for (let k = 0; k < L4.length; k++) {
+      if (used[k]) continue;
+      const d = (L4[k].x - mx) ** 2 + (L4[k].y - my) ** 2;
+      if (d < bd) { bd = d; best = k; }
+    }
+    used[best] = 1;
+    L4[best].tg = i;
+  }
+  for (const n of NODES) n.w = meas(n.label, 26) + 48;
+  TW = meas(TITLE, TFS);
+  TX0 = CX - (TW + 16 + 52) / 2;
+  SW = meas(SUB, SFS, 500);
+}
+
+// ───────── bar 1: the cursor multiplies ─────────
+const BEATS = [0, 0.5, 1.0, 1.5];
+function lvPos(level, idx, t) {
+  const n = level === 4 ? L4[idx] : LV[level][idx];
+  if (level === 0) return [n.x, n.y, n.w, n.h];
+  const [px, py, pw, ph] = lvPos(level - 1, n.p, t);
+  const par = level === 1 ? LV[0][0] : LV[level - 1][n.p];
+  const g = spring(t - BEATS[level - 1], 3.0, 0.86);
+  return [px + (n.x - par.x) * g, py + (n.y - par.y) * g, lerp(pw, n.w, g), lerp(ph, n.h, g)];
+}
+function hookAt(i, t) {
+  // A field dot after bar 1: the ones that belong to WORKING fly to their pixel, the rest shrink away.
+  const n = L4[i];
+  let [x, y, w, h] = lvPos(4, i, Math.min(t, 2.0));
+  if (t > 2.0) {
+    if (n.tg >= 0) {
+      const u = eOut(prog(t, 2.0 + n.d, 0.3), 9), [tx, ty] = TG[n.tg];
+      x = lerp(x, tx, u); y = lerp(y, ty, u); w = h = lerp(10, 8, u);
+    } else {
+      const u = eOut(prog(t, 2.0, 0.16), 6);
+      w = h = 10 * (1 - u);
+    }
+  }
+  return [x, y, w, h];
+}
+function sceneHook(t) {
+  if (t >= 2.5) return '';
+  let out = '';
+  const level = t < 0.5 ? 1 : t < 1.0 ? 2 : t < 1.5 ? 3 : 4;
+  if (level < 4) {
+    for (let i = 0; i < LV[level].length; i++) {
+      const [x, y, w, h] = lvPos(level, i, t), [x2, y2] = lvPos(level, i, t - EPS);
+      out += streak(x, y, w, h, (x - x2) / EPS, (y - y2) / EPS, C.lime);
+    }
+    return out;
+  }
+  for (let i = 0; i < L4.length; i++) {
+    const n = L4[i];
+    const [x, y, w] = hookAt(i, t);
+    if (w < 0.3) continue;
+    if (n.tg >= 0 && t > 2.0 + n.d + 0.3) continue; // arrived: now part of the word's clip
+    const [x2, y2] = hookAt(i, t - EPS);
+    out += streak(x, y, w, w, (x - x2) / EPS, (y - y2) / EPS, C.lime);
+  }
+  return out;
+}
+// While the pixels land, WORKING is shown only through the landed pixels, which grow until they cover it.
+function workingClip(t) {
+  if (t >= 2.5) return null;
+  let s = '';
+  for (const n of L4) {
+    if (n.tg < 0 || t <= 2.0 + n.d + 0.3) continue;
+    const g = lerp(8, 13, eOut(prog(t, 2.0 + n.d + 0.3, 0.08), 6)), [tx, ty] = TG[n.tg];
+    s += rect(tx - g / 2, ty - g / 2, g, g, '#fff');
+  }
+  return s;
+}
+
+// ───────── bar 2: kinetic type ─────────
+const scroll = (t) => 0.5 * (eOut(prog(t, 2.5, 0.34), 9) + eOut(prog(t, 3.0, 0.34), 9) + eOut(prog(t, 3.5, 0.34), 9));
+const lineCY = (i, t) => CY + (i - scroll(t)) * LH;
+function letterY(i, j, t) {
+  // Offset below the baseline (positive = down) for letter j of line i.
+  const L = LINES[i];
+  let off = 0;
+  if (i === 1) off = (1 - eOut(prog(t, L.beat + j * 0.028, 0.32), 8)) * LH;
+  if (i === 2) off = (1 - eOut(prog(t, L.beat, 0.3), 8)) * LH;
+  if (i === 3) off = (1 - eOut(prog(t, L.beat + (L.txt.length - 1 - j) * 0.03, 0.3), 9)) * LH;
+  off += eIn(prog(t, 4.0 + (3 - i) * 0.02 + j * 0.008, 0.17), 6) * LH * 1.05;
+  return off;
+}
+function letterX(i, j, t) {
+  const L = LINES[i];
+  let x = L.x0 + L.xs[j];
+  if (i === 2) x += (j - (L.txt.length - 1) / 2) * 170 * (1 - eOut(prog(t, L.beat, 0.46), 7));
+  return x;
+}
+function sceneType(t) {
+  if (t < 2.0 || t >= 4.5) return '';
+  let out = '';
+  LINES.forEach((L, i) => {
+    if (t < L.beat) return;
+    const cy = lineCY(i, t), base = cy + CAP / 2;
+    let col = C.paper;
+    if (i === 0) col = mix(C.lime, C.paper, eOut(prog(t, 2.5, 0.3)));
+    if (i === 2) col = C.lime;
+    let g = '';
+    [...L.txt].forEach((ch, j) => {
+      const x = letterX(i, j, t), y = base + letterY(i, j, t);
+      const x2 = letterX(i, j, t - EPS), y2 = lineCY(i, t - EPS) + CAP / 2 + letterY(i, j, t - EPS);
+      g += blur(text(ch, x, y, FS, col), (x - x2) / EPS, (y - y2) / EPS, x + FS * 0.3, y - CAP / 2, FS * 0.8);
+    });
+    if (L.period && !L.red) {
+      const px = L.x0 + L.tw + PGAP, off = letterY(i, L.txt.length, t);
+      g += rect(px, base - PS + off, PS, PS, C.paper);
+    }
+    const band = rect(0, cy - LH / 2 - 6, W, LH + 12, '#fff');
+    const masked = clip(g, band);
+    out += i === 0 && workingClip(t) !== null ? clip(masked, workingClip(t)) : masked;
+  });
+  return out;
+}
+
+// ───────── bar 3: shape morphing ─────────
+const NP = 180;
+function resample(pts, n) {
+  const seg = [], P = pts.concat([pts[0]]);
+  let tot = 0;
+  for (let i = 0; i < pts.length; i++) { const l = Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]); seg.push(l); tot += l; }
+  const out = [];
+  let k = 0, acc = 0;
+  for (let i = 0; i < n; i++) {
+    const d = (i / n) * tot;
+    while (acc + seg[k] < d) { acc += seg[k]; k++; }
+    const u = (d - acc) / seg[k];
+    out.push([lerp(P[k][0], P[k + 1][0], u), lerp(P[k][1], P[k + 1][1], u)]);
+  }
+  return out;
+}
+const squareP = (s) => resample([[-s / 2, -s / 2], [s / 2, -s / 2], [s / 2, s / 2], [-s / 2, s / 2]], NP);
+const circleP = (d) => Array.from({ length: NP }, (_, i) => { const a = -0.75 * Math.PI + (i / NP) * 2 * Math.PI; return [(Math.cos(a) * d) / 2, (Math.sin(a) * d) / 2]; });
+function checkP(s) {
+  // A thick check mark, outline traced clockwise from its top-left end.
+  const P1 = [-0.4, -0.02], P2 = [-0.13, 0.25], P3 = [0.42, -0.3], h = 0.085;
+  const nrm = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy); return [-dy / l, dx / l]; };
+  const n1 = nrm(P1, P2), n2 = nrm(P2, P3);
+  const m = [n1[0] + n2[0], n1[1] + n2[1]], ml = Math.hypot(...m), cos = (m[0] * n1[0] + m[1] * n1[1]) / ml;
+  const mi = [(m[0] / ml) * (h / cos), (m[1] / ml) * (h / cos)];
+  const pts = [
+    [P1[0] - n1[0] * h, P1[1] - n1[1] * h], [P2[0] - mi[0], P2[1] - mi[1]], [P3[0] - n2[0] * h, P3[1] - n2[1] * h],
+    [P3[0] + n2[0] * h, P3[1] + n2[1] * h], [P2[0] + mi[0], P2[1] + mi[1]], [P1[0] + n1[0] * h, P1[1] + n1[1] * h],
+  ].map(([x, y]) => [x * s, (y + 0.02) * s]);
+  if (area(pts) < 0) pts.reverse();
+  const r = resample(pts, NP);
+  let best = 0, bd = 1e9;
+  r.forEach((p, i) => { const d = p[0] + p[1]; if (d < bd) { bd = d; best = i; } });
+  return r.slice(best).concat(r.slice(0, best));
+}
+const SQ300 = () => squareP(300), CIRC = () => circleP(340), CHECK = () => checkP(560), SQ480 = () => squareP(480);
+let SH = null;
+function morphState(t) {
+  SH = SH || { a: SQ300(), b: CIRC(), c: CHECK(), d: SQ480() };
+  const L = LINES[3], base0 = CY + (3 - 1.5) * LH + CAP / 2;
+  const p0 = [L.x0 + L.tw + PGAP + PS / 2, base0 - PS / 2];
+  const g = spring(t - 4.1, 2.8, 0.88);
+  const cx = lerp(p0[0], CX, g), cy = lerp(p0[1], CY, g);
+  let pts, col = C.red, rot = 0;
+  if (t < 4.5) {
+    const s = lerp(PS, 300, g) / 300;
+    rot = 90 * eOut(prog(t, 4.1, 0.38), 7);
+    pts = SH.a.map(([x, y]) => [x * s, y * s]);
+  } else if (t < 5.0) {
+    const u = eInOut(prog(t, 4.5, 0.36), 7);
+    pts = SH.a.map((p, i) => [lerp(p[0], SH.b[i][0], u), lerp(p[1], SH.b[i][1], u)]);
+  } else if (t < 5.5) {
+    const u = eInOut(prog(t, 5.0, 0.36), 7);
+    pts = SH.b.map((p, i) => [lerp(p[0], SH.c[i][0], u), lerp(p[1], SH.c[i][1], u)]);
+    col = mix(C.red, C.lime, u);
+  } else {
+    const u = eOut(prog(t, 5.5, 0.24), 9);
+    pts = SH.c.map((p, i) => [lerp(p[0], SH.d[i][0], u), lerp(p[1], SH.d[i][1], u)]);
+    col = C.lime;
+  }
+  const r = (rot * Math.PI) / 180, cr = Math.cos(r), sr = Math.sin(r);
+  return { pts: pts.map(([x, y]) => [cx + x * cr - y * sr, cy + x * sr + y * cr]), col, cx, cy };
+}
+function sceneMorph(t) {
+  if (t < 4.0 || t >= 5.75) return '';
+  const s = morphState(t), s2 = morphState(t - EPS);
+  return blur(poly(s.pts, s.col), (s.cx - s2.cx) / EPS, (s.cy - s2.cy) / EPS, s.cx, s.cy, 340);
+}
+
+// ───────── bar 4: 2D → 3D ─────────
+function barsCam(t) {
+  const a = eOut(prog(t, 6.0, 0.46), 7), b = eInOut(prog(t, 7.0, 0.46), 6), c = eOut(prog(t, 7.5, 0.42), 7);
+  return cam(-34 * a + 64 * b - 30 * c, 24 * a - 6 * b - 18 * c);
+}
+function barBox(i, t) {
+  const gap = 14 * spring(t - 5.75, 3.2, 0.9), X = (i - 2.5) * (80 + gap);
+  const h = lerp(480, HS[i], eOut(prog(t, 6.5 + i * 0.04, 0.36), 8));
+  const d = 150 * eOut(prog(t, 6.0, 0.42), 8);
+  return { x0: X - 40, x1: X + 40, y0: -240, y1: -240 + h, z0: -d, z1: 0 };
+}
+const CAP30 = () => CAP * (30 / FS);
+function sceneBars(t) {
+  if (t < 5.75 || t >= 8.0) return '';
+  const cm = barsCam(t), cm2 = barsCam(t - EPS);
+  const boxes = PROJ.map((_, i) => ({ i, b: barBox(i, t) })).sort((A, B) => depthOf(cm, A.b) - depthOf(cm, B.b));
+  let out = '';
+  for (const { i, b } of boxes) {
+    let g = '';
+    for (const f of boxFaces(cm, b)) {
+      const col = f.k === 'front' ? C.lime : f.k === 'top' ? mix(C.lime, C.paper, 0.55) : shade(C.lime, f.k === 'back' ? 0.4 : 0.6);
+      g += poly(f.q, col, `stroke="${col}" stroke-width="0.6"`);
+      if (f.k === 'front' && t >= 7.0) {
+        const O = cm.p(b.x0, b.y0, 0), U = cm.p(b.x1, b.y0, 0), V = cm.p(b.x0, b.y1, 0);
+        const hh = b.y1 - b.y0, off = (1 - eOut(prog(t, 7.0 + i * 0.04, 0.34), 8)) * (hh + 40);
+        const inner = `<g transform="translate(${f2(40 + CAP30() / 2)} ${f2(-24 + off)}) rotate(-90)">${text(PROJ[i][0], 0, 0, 30, C.ink)}</g>`;
+        g += `<g transform="${affine(O, U, V, 80, -hh)}">${clip(inner, rect(0, -hh, 80, hh, '#fff'))}</g>`;
+      }
+    }
+    const fc = cm.p((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, 0), fc2 = cm2.p((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, 0);
+    out += blur(g, (fc[0] - fc2[0]) / EPS, (fc[1] - fc2[1]) / EPS, fc[0], fc[1], 330);
+  }
+  return out;
+}
+
+// ───────── bar 5: the dashboard ─────────
+const WIN = { x: 380, y: 192, w: 1160, h: 644 }, ROW = { x: 420, w: 1080, h: 74 }, rowY = (i) => 266 + i * 92;
+function rowRect(i, t) {
+  const X = (i - 2.5) * 94;
+  const bar = { x: CX + X - 40, y: CY + 240 - HS[i], w: 80, h: HS[i] };
+  const u = eInOut(prog(t, 8.0 + i * 0.035, 0.42), 7);
+  let r = { x: lerp(bar.x, ROW.x, u), y: lerp(bar.y, rowY(i), u), w: lerp(bar.w, ROW.w, u), h: lerp(bar.h, ROW.h, u), u };
+  if (i > 0) {
+    const c = eInOut(prog(t, 9.5 + i * 0.025, 0.3), 7);
+    r.y += (r.h - 3) / 2 * c; r.h = lerp(r.h, 3, c); r.c = c;
+  }
+  return r;
+}
+function pill(x, y, t, ts) {
+  const f = prog(t, ts, 0.16), on = f >= 0.5, sy = Math.abs(Math.cos(Math.PI * f));
+  const col = on ? C.lime : C.red, label = on ? 'PASSING' : 'TESTING';
+  return `<g transform="translate(${f2(x + 58)} ${f2(y + 17)}) scale(1 ${f2(Math.max(0.02, sy))})">${rect(-58, -17, 116, 34, col)}${text(label, 0, 6, 16, C.ink, 700, 'text-anchor="middle" letter-spacing="1.5"')}</g>`;
+}
+function sceneDash(t) {
+  if (t < 8.0 || t >= 10.0) return '';
+  let out = '';
+  // Window frame draws on with the rows, and retracts when the rows collapse.
+  const per = 2 * (WIN.w + WIN.h), draw = eOut(prog(t, 8.12, 0.45), 6) * (1 - eOut(prog(t, 9.5, 0.3), 6));
+  out += `<rect x="${WIN.x}" y="${WIN.y}" width="${WIN.w}" height="${WIN.h}" fill="none" stroke="${C.paper}" stroke-opacity="0.32" stroke-width="2" stroke-dasharray="${f2(per)}" stroke-dashoffset="${f2(per * (1 - draw))}"/>`;
+  out += `<line x1="${WIN.x}" x2="${f2(WIN.x + WIN.w * draw)}" y1="${WIN.y + 52}" y2="${WIN.y + 52}" stroke="${C.paper}" stroke-opacity="0.18" stroke-width="2"/>`;
+  const passed = PROJ.filter((_, i) => t >= 9.0 + i * 0.05 + 0.08).length;
+  const ty = WIN.y + 34 - 60 * eIn(prog(t, 9.5, 0.25), 6) + 60 * (1 - eOut(prog(t, 8.2, 0.3), 8));
+  out += clip(
+    `<circle cx="${WIN.x + 26}" cy="${ty - 7}" r="6" fill="${C.ink3}"/><circle cx="${WIN.x + 46}" cy="${ty - 7}" r="6" fill="${C.ink3}"/>` +
+      text('studio  /  6 products', WIN.x + 68, ty, 22, C.muted, 500) +
+      text(`tests passing  ${passed}/6`, WIN.x + WIN.w - 28, ty, 22, passed === 6 ? C.lime : C.muted, 500, 'text-anchor="end"'),
+    rect(WIN.x, WIN.y, WIN.w, 52, '#fff'),
+  );
+  PROJ.forEach((P, i) => {
+    const r = rowRect(i, t), r2 = rowRect(i, t - EPS);
+    const hi = i === 0 ? eOut(prog(t, 9.5, 0.25)) : 0;
+    let fill = mix(C.lime, C.ink3, r.u);
+    if (i === 0) fill = mix(fill, C.lime, hi);
+    if (r.c) fill = mix(C.ink3, '#5a5a62', r.c);
+    let g = rect(r.x, r.y, r.w, r.h, fill);
+    // Content slides in from the left inside the row.
+    const ci = (k) => (1 - eOut(prog(t, 8.5 + i * 0.04 + k * 0.03, 0.3), 8)) * -80;
+    const by = r.y + r.h / 2 + 11;
+    const shown = t >= 8.5;
+    let content = '';
+    if (shown) {
+      const n = Math.round(P[2] * eOut(prog(t, 8.5 + i * 0.04, 0.62), 5));
+      const suf = P[3] === '→1' ? (t >= 9.0 ? ' → 1' : '') : P[3];
+      content += text(P[1], ROW.x + 300 + ci(0), by - 1, 22, C.muted, 500);
+      content += text(String(n) + suf, ROW.x + 700 + ci(1), by + 1, 34, i === 0 ? mix(C.paper, C.ink, hi) : C.paper, 700, 'text-anchor="end"');
+      content += text(P[4], ROW.x + 716 + ci(2), by - 1, 20, i === 0 ? mix(C.muted, C.ink, hi) : C.muted, 500);
+      content += `<g transform="translate(${f2(ci(3))} 0)">${pill(ROW.x + ROW.w - 140, r.y + r.h / 2 - 17, t, 9.0 + i * 0.05)}</g>`;
+    }
+    g += clip(content, rect(r.x, r.y, r.w, r.h, '#fff'));
+    out += blur(g, (r.x + r.w / 2 - r2.x - r2.w / 2) / EPS, (r.y + r.h / 2 - r2.y - r2.h / 2) / EPS, r.x + r.w / 2, r.y + r.h / 2, Math.max(r.w, r.h) / 2 + 40);
+    // The project name: vertical inside the bar, turning flat into the row.
+    const ox = CX + (i - 2.5) * 94 - 40, a0 = [ox + 40 + CAP30() / 2, CY + 240 - 24];
+    const a1 = [ROW.x + 28, rowY(i) + ROW.h / 2 + CAP30() / 2];
+    const px = lerp(a0[0], a1[0], r.u), py = lerp(a0[1], a1[1], r.u), ang = -90 * (1 - r.u);
+    let ncol = mix(C.ink, C.paper, r.u);
+    if (i === 0) ncol = mix(ncol, C.ink, hi);
+    if (!r.c || r.c < 1) out += clip(`<g transform="translate(${f2(px)} ${f2(py)}) rotate(${f2(ang)})">${text(P[0], 0, 0, 30, ncol)}</g>`, rect(r.x - 2, r.y, r.w + 4, r.h, '#fff'));
+  });
+  return out;
+}
+
+// ───────── bar 6: the agent network ─────────
+const HUB = { w: 330, h: 84 };
+function hubRect(t) {
+  const u = eInOut(prog(t, 10.0, 0.42), 7);
+  return { x: lerp(ROW.x, CX - HUB.w / 2, u), y: lerp(rowY(0), CY - HUB.h / 2, u), w: lerp(ROW.w, HUB.w, u), h: lerp(ROW.h, HUB.h, u), u };
+}
+function edge2D(i, t) {
+  const v = eInOut(prog(t, 10.0 + i * 0.035, 0.46), 7), y = rowY(i + 1) + ROW.h / 2, N = NODES[i];
+  return [lerp(ROW.x, CX, v), lerp(y, CY, v), lerp(ROW.x + ROW.w, CX + N.dx, v), lerp(y, CY + N.dy, v)];
+}
+const nodePop = (i) => [10.5, 10.56, 11.0, 11.06, 11.12][i];
+const testsLime = (t) => eOut(prog(t, 11.75, 0.2));
+const PULSES = Array.from({ length: 16 }, (_, k) => 11.5 + k * 0.125);
+function pulses2D(t, pos) {
+  let out = '';
+  for (const ts of PULSES) for (let e = 0; e < 5; e++) {
+    const p = (t - ts - e * 0.02) / 0.34;
+    if (p <= 0 || p >= 1 || t < nodePop(e) + 0.1) continue;
+    const q = eInOut(p, 4), [x, y] = pos(e, q), [x2, y2] = pos(e, eInOut((t - EPS - ts - e * 0.02) / 0.34, 4));
+    out += streak(x, y, 12, 12, (x - x2) / EPS, (y - y2) / EPS, C.lime);
+  }
+  return out;
+}
+function sceneNet(t) {
+  if (t < 10.0 || t >= 12.0) return '';
+  let out = '';
+  for (let i = 0; i < 5; i++) {
+    const [x1, y1, x2, y2] = edge2D(i, t);
+    out += `<line x1="${f2(x1)}" y1="${f2(y1)}" x2="${f2(x2)}" y2="${f2(y2)}" stroke="#5a5a62" stroke-width="3"/>`;
+  }
+  out += pulses2D(t, (e, q) => [CX + NODES[e].dx * q, CY + NODES[e].dy * q]);
+  const r = hubRect(t), r2 = hubRect(t - EPS);
+  const gone = eIn(prog(t, 10.0, 0.18), 6) * 700;
+  let g = rect(r.x, r.y, r.w, r.h, C.lime);
+  const by = r.y + r.h / 2 + 11;
+  let content = text(PROJ[0][1], ROW.x + 300 + gone, by - 1, 22, C.ink, 500) + text('213', ROW.x + 700 + gone, by + 1, 34, C.ink, 700, 'text-anchor="end"') + text(PROJ[0][4], ROW.x + 716 + gone, by - 1, 20, C.ink, 500);
+  const nw = meas(PROJ[0][0], 30);
+  content += text(PROJ[0][0], lerp(ROW.x + 28, CX - nw / 2, r.u), r.y + r.h / 2 + CAP30() / 2, 30, C.ink);
+  g += clip(content, rect(r.x, r.y, r.w, r.h, '#fff'));
+  out += blur(g, (r.x + r.w / 2 - r2.x - r2.w / 2) / EPS, (r.y - r2.y) / EPS, r.x + r.w / 2, r.y + r.h / 2, r.w / 2 + 30);
+  NODES.forEach((N, i) => {
+    const s = spring(t - nodePop(i), 3.4, 0.86);
+    if (s <= 0.001) return;
+    const x = CX + N.dx, y = CY + N.dy, tl = N.tests ? testsLime(t) : 0;
+    const fill = N.tests ? mix(C.red, C.lime, tl) : C.ink;
+    const stroke = N.tests ? 'none' : C.paper;
+    out += `<g transform="translate(${f2(x)} ${f2(y)}) scale(${f2(s)})">${rect(-N.w / 2, -30, N.w, 60, fill, `stroke="${stroke}" stroke-width="2"`)}${text(N.label, 0, CAP * (26 / FS) / 2, 26, N.tests ? C.ink : C.paper, 700, 'text-anchor="middle"')}</g>`;
+  });
+  return out;
+}
+
+// ───────── bar 7: the city ─────────
+const TX_END = () => TX0;
+function cityCam(t) {
+  const a = eOut(prog(t, 12.0, 0.5), 6), b = eInOut(prog(t, 13.0, 0.5), 6), c = eOut(prog(t, 13.5, 0.45), 7);
+  const cm = cam(-28 * a + 60 * b - 32 * c, 90 - 50 * a - 40 * c), dy = 110 * a * (1 - c), p = cm.p;
+  cm.p = (X, Y, Z) => { const r = p(X, Y, Z); r[1] += dy; return r; };
+  return cm;
+}
+function cityBoxes(t) {
+  const cc = eOut(prog(t, 13.5, 0.45), 7), hubX = TX0 + 26 - CX;
+  const hubH = lerp(240 * spring(t - 12.0, 2.6, 0.9), 92, cc);
+  const hw = lerp(HUB.w, 52, cc), hd = lerp(HUB.h, 52, cc), hx = lerp(0, hubX, cc), hz = lerp(0, -26, cc), hy = lerp(0, -46, cc);
+  const list = [{ hub: true, label: PROJ[0][0], b: { x0: hx - hw / 2, x1: hx + hw / 2, y0: hy, y1: hy + hubH, z0: hz - hd / 2, z1: hz + hd / 2 } }];
+  NODES.forEach((N, i) => {
+    const k = 1 - cc, h = N.h * 0.7 * spring(t - 12.0 - i * 0.05, 2.8, 0.9) * k;
+    const X = lerp(hx, N.dx, k), Z = lerp(hz, N.dy, k), w = N.w * k, d = 60 * k;
+    list.push({ N, label: N.label, b: { x0: X - w / 2, x1: X + w / 2, y0: hy * cc, y1: hy * cc + h, z0: Z - d / 2, z1: Z + d / 2 } });
+  });
+  return { list, cc, hx, hz, hy };
+}
+function typePlane(cm, t) {
+  // Giant words standing on the ground behind the network, each letter mapped onto its own patch of the plane.
+  const ZT = -800, size = 260, cap = CAP * (size / FS);
+  const words = [
+    { s: 'AI AGENTS', col: C.paper, up: 12.5, down: 12.94, dd: 0.18 },
+    { s: 'I DIRECT.', col: C.lime, up: 13.04, down: 13.46, dd: 0.16 },
+  ];
+  let out = '';
+  for (const wd of words) {
+    if (t < wd.up) continue;
+    const xs = xsOf(wd.s, size), tw = meas(wd.s, size), x0 = -tw / 2;
+    [...wd.s].forEach((ch, j) => {
+      if (ch === ' ') return;
+      const adv = meas(ch, size);
+      const up = 1 - eOut(prog(t, wd.up + j * 0.025, 0.3), 8), dn = eIn(prog(t, wd.down + j * 0.012, wd.dd), 6);
+      const off = (up + dn) * cap * 1.15;
+      if (off >= cap * 1.15) return;
+      const X = x0 + xs[j], O = cm.p(X, 0, ZT), U = cm.p(X + adv, 0, ZT), V = cm.p(X, cap, ZT);
+      out += `<g transform="${affine(O, U, V, adv, -cap)}">${clip(text(ch, 0, off, size, wd.col), rect(-40, -cap * 1.5, adv + 80, cap * 1.5, '#fff'))}</g>`;
+    });
+  }
+  return out;
+}
+function sceneCity(t) {
+  if (t < 12.0 || t >= 14.0) return '';
+  const cm = cityCam(t), cm2 = cityCam(t - EPS);
+  const { list, cc, hx, hz } = cityBoxes(t);
+  let out = typePlane(cm, t);
+  // Ground edges and pulses.
+  NODES.forEach((N, i) => {
+    const k = 1 - cc, a = cm.p(hx, 0, hz), b = cm.p(lerp(hx, N.dx, k), 0, lerp(hz, N.dy, k));
+    if (k > 0.01) out += `<line x1="${f2(a[0])}" y1="${f2(a[1])}" x2="${f2(b[0])}" y2="${f2(b[1])}" stroke="#5a5a62" stroke-width="3"/>`;
+  });
+  if (cc < 0.5) out += pulses2D(t, (e, q) => { const p = cm.p(hx + NODES[e].dx * q * (1 - cc), 0, hz + NODES[e].dy * q * (1 - cc)); return [p[0], p[1]]; });
+  list.sort((A, B) => depthOf(cm, A.b) - depthOf(cm, B.b));
+  for (const it of list) {
+    const b = it.b;
+    if (b.x1 - b.x0 < 0.5) continue;
+    const lime = it.hub || (it.N && it.N.tests);
+    let g = '';
+    for (const f of boxFaces(cm, b)) {
+      let col, stroke;
+      if (lime) { col = f.k === 'top' ? C.lime : f.k === 'front' ? shade(C.lime, 0.82) : shade(C.lime, 0.6); if (it.hub && cc > 0) col = mix(col, C.lime, cc); stroke = col; }
+      else { col = f.k === 'top' ? C.ink : f.k === 'front' ? C.ink2 : C.ink3; stroke = C.paper; }
+      g += poly(f.q, col, `stroke="${stroke}" stroke-width="${lime ? 0.6 : 2}" stroke-linejoin="round"`);
+      if (f.k === 'top' && cc < 0.6) {
+        // Label on the roof, mapped with the roof.
+        const O = cm.p(b.x0, b.y1, b.z0), U = cm.p(b.x1, b.y1, b.z0), V = cm.p(b.x0, b.y1, b.z1);
+        const w = b.x1 - b.x0, d = b.z1 - b.z0, sz = it.hub ? 30 : 26;
+        g += `<g transform="${affine(O, U, V, w, d)}">${text(it.label, w / 2, d / 2 + CAP * (sz / FS) / 2, sz, lime ? C.ink : C.paper, 700, 'text-anchor="middle"')}</g>`;
+      }
+    }
+    const m = cm.p((b.x0 + b.x1) / 2, b.y1, (b.z0 + b.z1) / 2), m2 = cm2.p((b.x0 + b.x1) / 2, b.y1, (b.z0 + b.z1) / 2);
+    out += blur(g, (m[0] - m2[0]) / EPS, (m[1] - m2[1]) / EPS, m[0], m[1], 520);
+  }
+  return out;
+}
+
+// ───────── end title ─────────
+function cursorX(t) {
+  // Left edge of the cursor.
+  const end = TX0 + TW + 16;
+  return lerp(lerp(TX0, end, eOut(prog(t, 14.0, 0.26), 7)), CX - 26, eInOut(prog(t, 14.62, 0.32), 6));
+}
+function sceneTitle(t) {
+  if (t < 14.0) return '';
+  const cxL = cursorX(t), cx2L = cursorX(t - EPS), sq = eInOut(prog(t, 14.62, 0.32), 6), end = TX0 + TW + 16;
+  const base = CY + CAP * (TFS / FS) / 2;
+  let out = '';
+  if (sq < 1) {
+    // Typed out behind the cursor, then pulled back into it.
+    const reveal = rect(TX0 - 10, CY - 120, Math.max(0, cxL - TX0 + 10), 240, '#fff');
+    const name = text(TITLE, TX0, base, TFS, C.paper);
+    const s = Math.max(0.0001, 1 - sq);
+    const g = `<g transform="translate(${f2(cxL)} ${CY}) scale(${f2(s)} 1) translate(${f2(-end)} ${-CY})">${clip(name, sq > 0 ? rect(0, 0, W, H, '#fff') : reveal)}</g>`;
+    out += blur(g, (cxL - cx2L) / EPS, 0, CX, CY, 700);
+    const rise = (1 - eOut(prog(t, 14.5, 0.22), 8)) * 60;
+    const subX = TX0 + 2;
+    const sub = clip(text(SUB, subX, base + 66 + rise, SFS, C.muted, 500, 'letter-spacing="0"'), rect(0, base + 30, W, 50, '#fff'));
+    if (t >= 14.5) out += `<g transform="translate(${f2(cxL)} ${CY}) scale(${f2(s)} ${f2(s)}) translate(${f2(-end)} ${-CY})">${sub}</g>`;
+  }
+  out += streak(cxL + 26, CY, 52, 92, (cxL - cx2L) / EPS, 0, C.lime);
+  return out;
+}
+
+// ───────── frame ─────────
+function frame(t) {
+  t = ((t % DUR) + DUR) % DUR;
+  defs = []; fid = 0; cid = 0;
+  const body = sceneHook(t) + sceneType(t) + sceneMorph(t) + sceneBars(t) + sceneDash(t) + sceneNet(t) + sceneCity(t) + sceneTitle(t);
+  return `<defs>${defs.join('')}</defs>${rect(0, 0, W, H, C.ink)}${body}`;
+}
+const stage = document.getElementById('stage');
+window.seek = (t) => { stage.innerHTML = frame(t); };
+window.ready = (async () => {
+  await document.fonts.load('700 200px SG');
+  await document.fonts.load('500 30px SG');
+  init();
+  window.seek(0);
+  return true;
+})();
+
+// ───────── soundtrack ─────────
+window.renderAudio = async () => {
+  const sr = 48000, ctx = new OfflineAudioContext(2, DUR * sr, sr);
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -14; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.12;
+  const master = ctx.createGain(); master.gain.value = 0.9;
+  master.connect(comp); comp.connect(ctx.destination);
+  const nb = ctx.createBuffer(1, sr * 2, sr), nd = nb.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = hash(i * 0.731) * 2 - 1;
+  const noise = (t, dur, setup) => {
+    const s = ctx.createBufferSource(); s.buffer = nb; s.loop = true;
+    const out = setup(s); s.start(t, (t * 7) % 1.5); s.stop(t + dur); return out;
+  };
+  const env = (g, t, peak, dec, att = 0.002) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + att); g.gain.exponentialRampToValueAtTime(0.0001, t + dec); };
+  const pan = (v) => { const p = ctx.createStereoPanner(); p.pan.value = v; p.connect(master); return p; };
+  const C0 = pan(0);
+
+  function kick(t, amt = 1) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.setValueAtTime(170, t); o.frequency.exponentialRampToValueAtTime(44, t + 0.11);
+    env(g, t, 0.95 * amt, 0.42); o.connect(g); g.connect(C0); o.start(t); o.stop(t + 0.45);
+    noise(t, 0.015, (s) => { const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 3000; const g2 = ctx.createGain(); env(g2, t, 0.25 * amt, 0.012); s.connect(f); f.connect(g2); g2.connect(C0); });
+  }
+  function hat(t, v = 0.12, p = 0.25) {
+    noise(t, 0.06, (s) => { const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 8500; const g = ctx.createGain(); env(g, t, v, 0.045); s.connect(f); f.connect(g); g.connect(pan(p)); });
+  }
+  function clap(t, v = 0.32) {
+    for (const d of [0, 0.011, 0.022]) noise(t + d, 0.16, (s) => { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1700; f.Q.value = 1.2; const g = ctx.createGain(); env(g, t + d, v, d === 0.022 ? 0.16 : 0.03); s.connect(f); f.connect(g); g.connect(C0); });
+  }
+  function snare(t, v) {
+    noise(t, 0.09, (s) => { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2400; f.Q.value = 0.8; const g = ctx.createGain(); env(g, t, v, 0.08); s.connect(f); f.connect(g); g.connect(C0); });
+  }
+  function bass(t, freq, dur = 0.22, v = 0.28) {
+    const o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    o.type = 'sawtooth'; o.frequency.value = freq; f.type = 'lowpass'; f.Q.value = 6;
+    f.frequency.setValueAtTime(900, t); f.frequency.exponentialRampToValueAtTime(140, t + dur);
+    env(g, t, v, dur, 0.005); o.connect(f); f.connect(g); g.connect(C0); o.start(t); o.stop(t + dur + 0.02);
+  }
+  function hit(t, big = false) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.setValueAtTime(big ? 90 : 75, t); o.frequency.exponentialRampToValueAtTime(32, t + 0.5);
+    env(g, t, big ? 0.9 : 0.6, big ? 1.4 : 0.7); o.connect(g); g.connect(C0); o.start(t); o.stop(t + 1.5);
+    noise(t, big ? 0.9 : 0.4, (s) => { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.setValueAtTime(9000, t); f.frequency.exponentialRampToValueAtTime(200, t + (big ? 0.7 : 0.3)); const g2 = ctx.createGain(); env(g2, t, big ? 0.55 : 0.35, big ? 0.85 : 0.35); s.connect(f); f.connect(g2); g2.connect(C0); });
+    [220, 261.6, 329.6, big ? 440 : 392].forEach((fr, i) => {
+      const so = ctx.createOscillator(), sf = ctx.createBiquadFilter(), sg = ctx.createGain();
+      so.type = 'sawtooth'; so.frequency.value = fr; so.detune.value = (i - 1.5) * 7;
+      sf.type = 'lowpass'; sf.frequency.setValueAtTime(3200, t); sf.frequency.exponentialRampToValueAtTime(300, t + 0.35);
+      env(sg, t, big ? 0.07 : 0.05, big ? 0.6 : 0.32, 0.004); so.connect(sf); sf.connect(sg); sg.connect(pan((i - 1.5) * 0.4)); so.start(t); so.stop(t + 0.7);
+    });
+  }
+  function riser(t0, t1) {
+    noise(t0, t1 - t0, (s) => {
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 3;
+      f.frequency.setValueAtTime(300, t0); f.frequency.exponentialRampToValueAtTime(9000, t1);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.5, t1 - 0.02); g.gain.linearRampToValueAtTime(0, t1);
+      s.connect(f); f.connect(g); g.connect(C0);
+    });
+    const o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(110, t0); o.frequency.exponentialRampToValueAtTime(880, t1);
+    f.type = 'lowpass'; f.frequency.setValueAtTime(400, t0); f.frequency.exponentialRampToValueAtTime(6000, t1);
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.12, t1 - 0.02); g.gain.linearRampToValueAtTime(0, t1);
+    o.connect(f); f.connect(g); g.connect(C0); o.start(t0); o.stop(t1);
+    // Snare roll that doubles its rate into the drop.
+    for (let t = t0; t < t1 - 0.01; ) { const u = (t - t0) / (t1 - t0); snare(t, 0.06 + 0.22 * u); t += u < 0.5 ? 0.125 : u < 0.875 ? 0.0625 : 0.03125; }
+  }
+
+  const ROOT = [55, 55, 43.65, 49, 55, 41.2, 55, 55];
+  for (let b = 0; b < 30; b++) {
+    const t = b * 0.5, bar = Math.floor(t / 2);
+    kick(t, bar === 6 ? 1.1 : 1);
+    hat(t + 0.25, 0.1 + (bar >= 6 ? 0.04 : 0));
+    if (bar >= 1 && b % 2 === 1 && bar !== 5) clap(t);
+    if (bar !== 5) bass(t + 0.25, ROOT[bar] * (bar === 6 && b % 2 ? 2 : 1));
+    if (bar >= 6) hat(t + 0.125, 0.05, -0.3), hat(t + 0.375, 0.05, -0.3);
+  }
+  for (const t of [0, 2, 4, 6, 8, 10, 14]) hit(t, false);
+  hit(12, true);
+  riser(10, 12);
+
+  const buf = await ctx.startRendering();
+  const L = buf.getChannelData(0), R = buf.getChannelData(1), n = L.length;
+  const out = new DataView(new ArrayBuffer(44 + n * 4));
+  const str = (o, s) => [...s].forEach((c, i) => out.setUint8(o + i, c.charCodeAt(0)));
+  str(0, 'RIFF'); out.setUint32(4, 36 + n * 4, true); str(8, 'WAVE'); str(12, 'fmt ');
+  out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 2, true); out.setUint32(24, sr, true);
+  out.setUint32(28, sr * 4, true); out.setUint16(32, 4, true); out.setUint16(34, 16, true); str(36, 'data'); out.setUint32(40, n * 4, true);
+  let peak = 0;
+  for (let i = 0; i < n; i++) peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
+  const k = peak > 0.98 ? 0.98 / peak : 1;
+  for (let i = 0; i < n; i++) {
+    out.setInt16(44 + i * 4, clamp(L[i] * k, -1, 1) * 32767, true);
+    out.setInt16(46 + i * 4, clamp(R[i] * k, -1, 1) * 32767, true);
+  }
+  const bytes = new Uint8Array(out.buffer);
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+</script>
+</body>
+</html>
