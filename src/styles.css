@@ -800,7 +800,6 @@ button {
 .reel__frame {
   position: relative;
   margin: 0;
-  border: 2px solid var(--line);
   background: var(--ink);
 }
 .reel__frame video {
