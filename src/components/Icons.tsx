@@ -5,14 +5,17 @@ import type { SVGProps } from 'react';
 type P = SVGProps<SVGSVGElement>;
 const base = { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'square' as const, 'aria-hidden': true };
 
+// The GR mark: G and R in paper, the R's leg in lime. Traced from the logo artwork, 741 × 408 units.
+export const GR_VIEWBOX = '0 0 741 408';
+export const GR_PAPER = 'M120 0H372L282 90H127A36 36 0 0 0 91 126V283A36 36 0 0 0 127 319H261V250H153V163H357V408H120A120 120 0 0 1 0 288V120A120 120 0 0 1 120 0ZM401 0H577A125 125 0 0 1 577 250H484L397 163H575A36.5 36.5 0 0 0 575 90H311ZM392 186L489 283V408H392Z';
+export const GR_LEG = 'M502 271H614L741 408H629Z';
+
 export const GrMark = (p: P) => (
-  <svg viewBox="-4 -8.5 31 31" aria-hidden="true" {...p}>
-    <rect x="-4" y="-8.5" width="31" height="31" fill="var(--red)" />
-    <path fill="var(--ink)" fillRule="evenodd" d={GR_PATH} />
+  <svg viewBox={GR_VIEWBOX} aria-hidden="true" {...p}>
+    <path fill="var(--paper)" d={GR_PAPER} />
+    <path fill="var(--lime)" d={GR_LEG} />
   </svg>
 );
-
-export const GR_PATH = 'M0 0H10V4H3V10H7V8H5V5H10V14H0ZM13 0H23V8H20L23 14H19.5L16.5 8H16V14H13ZM16 3V5H20V3Z';
 
 export const IconGitHub = (p: P) => (
   <svg {...base} {...p}>

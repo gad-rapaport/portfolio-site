@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { profile } from '../data/profile';
+import { asset } from '../data/asset';
 import { useT } from '../i18n';
-import { GR_PATH, GrMark, IconGitHub, IconLinkedIn } from './Icons';
+import { GR_LEG, GR_PAPER, GR_VIEWBOX, GrMark, IconGitHub, IconLinkedIn } from './Icons';
 import { useReducedMotion } from '../lib/motion';
 
 interface TopBarProps {
@@ -141,8 +142,9 @@ export function Intro({ onReveal, onDone }: { onReveal: () => void; onDone: () =
         <div className="intro__mark" dir="ltr">
           {[0, 1, 2].map((i) => (
             <div className="intro__slice" key={i}>
-              <svg viewBox="0 0 23 14">
-                <path fillRule="evenodd" d={GR_PATH} />
+              <svg viewBox={GR_VIEWBOX}>
+                <path d={GR_PAPER} />
+                <path className="intro__leg" d={GR_LEG} />
               </svg>
             </div>
           ))}
@@ -168,6 +170,17 @@ export function Footer() {
   const t = useT();
   return (
     <footer className="footer">
+      <div className="footer__banner" aria-hidden="true">
+        <img
+          src={asset('media/banner.webp')}
+          srcSet={`${asset('media/banner-1200.webp')} 1200w, ${asset('media/banner.webp')} 2056w`}
+          sizes="100vw"
+          alt=""
+          width={2056}
+          height={765}
+          loading="lazy"
+        />
+      </div>
       <div className="wrap">
         <span>© 2026 {t.name}</span>
         <span>{t.footer.built}</span>

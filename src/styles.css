@@ -214,8 +214,8 @@ button {
   white-space: nowrap;
 }
 .brand svg {
-  width: 34px;
-  height: 34px;
+  width: auto;
+  height: 24px;
 }
 .topbar nav {
   display: flex;
@@ -308,7 +308,7 @@ button {
 .intro__mark {
   position: relative;
   width: min(42vw, 280px);
-  aspect-ratio: 23 / 14;
+  aspect-ratio: 741 / 408;
 }
 .intro__slice {
   position: absolute;
@@ -427,7 +427,18 @@ button {
     fill: var(--c);
   }
   100% {
-    fill: var(--red);
+    fill: var(--paper);
+  }
+}
+.intro__slice svg .intro__leg {
+  animation-name: slice-leg;
+}
+@keyframes slice-leg {
+  80% {
+    fill: var(--c);
+  }
+  100% {
+    fill: var(--lime);
   }
 }
 @keyframes label-in {
@@ -1998,10 +2009,22 @@ button {
 }
 
 .footer {
-  padding-block: 24px calc(24px + env(safe-area-inset-bottom, 0px));
+  padding-block: 0 calc(24px + env(safe-area-inset-bottom, 0px));
   font-family: var(--mono);
   font-size: 12px;
   color: var(--muted);
+}
+.footer__banner {
+  height: clamp(180px, 30vw, 460px);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.footer__banner img {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  object-fit: cover;
+  object-position: right center;
 }
 .footer .wrap {
   display: flex;
