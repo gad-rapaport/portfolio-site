@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { profile } from '../data/profile';
-import { asset } from '../data/asset';
 import { useT } from '../i18n';
 import { GR_LEG, GR_PAPER, GR_VIEWBOX, GrMark, IconGitHub, IconInstagram, IconLinkedIn } from './Icons';
 import { useReducedMotion } from '../lib/motion';
@@ -173,17 +172,6 @@ export function Footer() {
   const t = useT();
   return (
     <footer className="footer">
-      <div className="footer__banner" aria-hidden="true">
-        <img
-          src={asset('media/banner.webp')}
-          srcSet={`${asset('media/banner-1200.webp')} 1200w, ${asset('media/banner.webp')} 2056w`}
-          sizes="100vw"
-          alt=""
-          width={2056}
-          height={765}
-          loading="lazy"
-        />
-      </div>
       <div className="wrap">
         <span>© 2026 {t.name}</span>
         <span>{t.footer.built}</span>
