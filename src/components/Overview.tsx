@@ -22,6 +22,7 @@ export function Overview({ onProject }: { onProject: (id: string) => void }) {
           <a className="btn" href={`mailto:${profile.email}`} dir="ltr">{profile.email}</a>
           <a className="btn" href={profile.github} target="_blank" rel="noreferrer">GitHub</a>
           <a className="btn" href={profile.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
+          <a className="btn" href={profile.instagram} target="_blank" rel="noreferrer">Instagram</a>
           {hasCv ? (
             <a className="btn" href={profile.cv[lang]} target="_blank" rel="noreferrer">{t.contact.cv}</a>
           ) : (

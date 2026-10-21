@@ -101,6 +101,7 @@ function Page({ url, setUrl }: { url: ReturnType<typeof useUrlState>[0]; setUrl:
       { id: 'cv', label: p.cv, hint: 'PDF', run: () => window.open(hasCv ? profile.cv[url.lang] : `mailto:${profile.email}?subject=CV%20request`, '_blank') },
       { id: 'lang', label: p.lang, hint: other.toUpperCase(), run: switchLang },
       { id: 'github', label: p.github, hint: 'github.com/gad-rapaport', run: () => window.open(profile.github, '_blank', 'noopener') },
+      { id: 'instagram', label: p.instagram, hint: 'instagram.com/gr.buildstudio', run: () => window.open(profile.instagram, '_blank', 'noopener') },
     ];
   }, [t, stage, localized, openProject, openOverview, openStudio, goContact, showToast, showDiploma, switchLang, other, url.lang]);
 

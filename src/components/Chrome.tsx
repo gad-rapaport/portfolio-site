@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { profile } from '../data/profile';
 import { asset } from '../data/asset';
 import { useT } from '../i18n';
-import { GR_LEG, GR_PAPER, GR_VIEWBOX, GrMark, IconGitHub, IconLinkedIn } from './Icons';
+import { GR_LEG, GR_PAPER, GR_VIEWBOX, GrMark, IconGitHub, IconInstagram, IconLinkedIn } from './Icons';
 import { useReducedMotion } from '../lib/motion';
 
 interface TopBarProps {
@@ -82,6 +82,9 @@ export function TopBar({ onPalette, onOverview, onStudio, onLang, langHref, view
           </a>
           <a className="icon-btn" href={profile.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn">
             <IconLinkedIn />
+          </a>
+          <a className="icon-btn" href={profile.instagram} target="_blank" rel="noreferrer" aria-label="Instagram">
+            <IconInstagram />
           </a>
         </div>
       </div>
