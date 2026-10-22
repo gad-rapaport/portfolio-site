@@ -102,6 +102,7 @@ function Page({ url, setUrl }: { url: ReturnType<typeof useUrlState>[0]; setUrl:
       { id: 'lang', label: p.lang, hint: other.toUpperCase(), run: switchLang },
       { id: 'github', label: p.github, hint: 'github.com/gr-buildstudio', run: () => window.open(profile.github, '_blank', 'noopener') },
       { id: 'instagram', label: p.instagram, hint: 'instagram.com/gr.buildstudio', run: () => window.open(profile.instagram, '_blank', 'noopener') },
+      { id: 'facebook', label: p.facebook, hint: 'facebook.com', run: () => window.open(profile.facebook, '_blank', 'noopener') },
     ];
   }, [t, stage, localized, openProject, openOverview, openStudio, goContact, showToast, showDiploma, switchLang, other, url.lang]);
 

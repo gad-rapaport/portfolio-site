@@ -32,6 +32,11 @@ export const IconInstagram = (p: P) => (
     <path d="M4 4h16v16H4zM16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0M17 7v.01" />
   </svg>
 );
+export const IconFacebook = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M14 21v-8h3l.5-4H14V7c0-1.1.4-2 2-2h2V2h-3c-3 0-5 1.8-5 5v2H7v4h3v8" />
+  </svg>
+);
 export const IconMail = (p: P) => (
   <svg {...base} {...p}>
     <path d="M3 5h18v14H3zM3 6l9 7 9-7" />

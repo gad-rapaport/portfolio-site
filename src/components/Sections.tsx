@@ -5,7 +5,7 @@ import { useLang, useProjects, useT } from '../i18n';
 import { copyText, useToast } from '../lib/copy';
 import { useReducedMotion } from '../lib/motion';
 import { useMedia } from './MediaDialog';
-import { IconArrow, IconCopy, IconDoc, IconDown, IconGitHub, IconInstagram, IconLinkedIn, IconMail } from './Icons';
+import { IconArrow, IconCopy, IconDoc, IconDown, IconFacebook, IconGitHub, IconInstagram, IconLinkedIn, IconMail } from './Icons';
 
 const icon: CSSProperties = { width: 20, verticalAlign: -4, marginInlineEnd: 8 };
 
@@ -342,6 +342,9 @@ export function Contact() {
           <div className="contact__row">
             <a href={profile.instagram} target="_blank" rel="noreferrer" dir="ltr"><IconInstagram style={icon} />@gr.buildstudio</a>
             <span className="mono">Instagram</span>
+          </div>
+          <div className="contact__row">
+            <a href={profile.facebook} target="_blank" rel="noreferrer"><IconFacebook style={icon} />Facebook</a>
           </div>
           <div className="contact__row">
             {hasCv ? (
