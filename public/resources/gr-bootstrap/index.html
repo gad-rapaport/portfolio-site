@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#111310">
+  <title>הבסיס לפרויקט הבא שלכם | GR Build Studio</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#111310;color:#f3f0e5;font-family:Arial,sans-serif;line-height:1.75}
+    main{max-width:820px;margin:auto;padding:52px 24px 70px}.brand{font-size:13px;letter-spacing:3px;color:#c7f447}h1{font-size:clamp(36px,7vw,62px);line-height:1.12;margin:24px 0}h2{font-size:24px;margin-top:38px}p{color:#bfc4b7}.lead{font-size:20px;max-width:640px}
+    .downloads{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:32px 0}.button{display:block;background:#c7f447;color:#111310;padding:18px;border-radius:12px;text-decoration:none;font-weight:bold}.button.secondary{background:transparent;border:1px solid #69754d;color:#f3f0e5}.button small{display:block;font-weight:normal;font-size:14px}
+    li{margin:16px 0}code{font-family:monospace;color:#c7f447}pre{white-space:pre-wrap;background:#1d211a;border:1px solid #38422e;border-radius:12px;padding:20px;font:15px/1.8 Arial,sans-serif}a{color:#c7f447}footer{border-top:1px solid #38422e;margin-top:40px;padding-top:20px;font-size:14px;color:#a1aa96}.note{font-size:14px} @media(max-width:520px){.downloads{grid-template-columns:1fr}main{padding-top:32px}}
+  </style>
+</head>
+<body><main>
+  <div class="brand" dir="ltr">GR / BUILD STUDIO</div>
+  <h1>הרעיון שלכם.<br>בסיס שאפשר להמשיך ממנו.</h1>
+  <p class="lead">הפרומפט להכנת מסמכי הפרויקט ותוכנית העבודה, לפני שמתחילים לבנות עם כלי AI.</p>
+  <div class="downloads">
+    <a class="button" href="Universal_LLM_Project_Bootstrap_Prompt.md" download>הורדת Markdown <small>נוח לצירוף ישירות ל־Codex</small></a>
+    <a class="button secondary" href="Universal_LLM_Project_Bootstrap_Prompt.pdf" download>הורדת PDF <small>נוח לקריאה ולשמירה · 23 עמודים</small></a>
+  </div>
+  <p class="note">אותו פרומפט בשני פורמטים. אין צורך לצרף את שניהם. הקבצים המקוריים נשמרו ללא שינוי.</p>
+  <h2>איך מתחילים?</h2>
+  <ol>
+    <li><strong>פותחים תיקיית פרויקט ב־Codex.</strong> מצרפים את הפרומפט ומתארים מה רוצים לבנות, עבור מי ומה צריך להיכלל בגרסה הראשונה.</li>
+    <li><strong>מכינים מסמכים שמתאימים לרעיון.</strong> מבקשים הגדרת מוצר, תוכנית עבודה, ארכיטקטורה, כללי עבודה ובדיקות. משלימים שאלות מהותיות לפני שממשיכים.</li>
+    <li><strong>עוברים על התוכנית.</strong> בודקים שהדרישות נכונות, שהמשימות קטנות וברורות ושיש דרך לבדוק הצלחה. המסמכים הם בסיס עבודה, לא הוכחה שמוצר מוכן.</li>
+    <li><strong>ממשיכים ב־Claude Code באותה תיקייה.</strong> מבקשים לקרוא את ההנחיות ואת המסמכים הרלוונטיים, לבחור את המשימה הראשונה שלא הושלמה, לבצע אותה ולבדוק את התוצאה.</li>
+  </ol>
+  <h2>טקסט פתיחה ל־Codex</h2>
+  <pre>מצורף פרומפט להכנת בסיס לפרויקט.
+הרעיון שלי: [מה בונים].
+המשתמשים: [למי זה מיועד].
+הגרסה הראשונה צריכה לכלול: [3–5 יכולות].
+המגבלות שלי: [זמן, תקציב, פלטפורמה].
+
+התאם את הפרומפט לרעיון. שאל שאלות מהותיות, הפרד הנחות מדרישות וצור את מסמכי הבסיס ותוכנית העבודה. בשלב הזה אל תתחיל לממש פיצ׳רים. שמור בתיקייה את המידע שיאפשר לכלי אחר להמשיך בלי היסטוריית השיחה.</pre>
+  <h2>טקסט מעבר ל־Claude Code</h2>
+  <pre>אנחנו ממשיכים פרויקט קיים באותה תיקייה.
+קרא את הנחיות הפרויקט ואת מסמכי המוצר, התוכנית, הארכיטקטורה והבדיקות הרלוונטיים. בדוק את מצב Git.
+סכם בקצרה את המצב, בחר את המשימה הראשונה שאפשר לבצע מתוך התוכנית, וממש אותה בצעד קטן. הרץ את הבדיקות המתאימות ועדכן את התוכנית לפי התוצאות בפועל. אל תתחיל מחדש ואל תסמן משימה כבוצעה בלי אימות.</pre>
+  <p class="note">זו שיטת עבודה מוצעת, לא דרישה של Codex או Claude Code. אפשר להשתמש בכל אחד מהם גם לתכנון וגם לפיתוח. התאימו את כמות התיעוד להיקף הפרויקט.</p>
+  <footer><a href="https://www.instagram.com/gr.buildstudio/">עוד תכנים ב־@gr.buildstudio</a> · GR Build Studio</footer>
+</main></body></html>
