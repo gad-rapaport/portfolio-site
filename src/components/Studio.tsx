@@ -86,7 +86,7 @@ export function Studio({ project, layer, onProject, onLayer }: Props) {
                 </span>
                 {project.repo ? (
                   <a href={project.repo} target="_blank" rel="noreferrer" dir="ltr">
-                    github.com/gad-rapaport/{project.id} ↗
+                    github.com/gr-buildstudio/{project.id} ↗
                   </a>
                 ) : (
                   <span>{t.studio.privateCode}</span>

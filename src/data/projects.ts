@@ -46,7 +46,7 @@ export interface Project {
   shots: Shot[];
 }
 
-const GH = 'https://github.com/gad-rapaport';
+const GH = 'https://github.com/gr-buildstudio';
 
 type MediaId = keyof typeof media;
 

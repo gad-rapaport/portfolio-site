@@ -333,7 +333,7 @@ export function Contact() {
             </button>
           </div>
           <div className="contact__row">
-            <a href={profile.github} target="_blank" rel="noreferrer" dir="ltr"><IconGitHub style={icon} />github.com/gad-rapaport</a>
+            <a href={profile.github} target="_blank" rel="noreferrer" dir="ltr"><IconGitHub style={icon} />github.com/gr-buildstudio</a>
             <span className="mono">{t.contact.repos(all.filter((p) => p.repo).length)}</span>
           </div>
           <div className="contact__row">
